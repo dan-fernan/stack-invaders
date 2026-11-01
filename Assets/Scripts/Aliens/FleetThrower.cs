@@ -20,9 +20,9 @@ public class FleetThrower : MonoBehaviour
     [Header("Timing")]
     [SerializeField] private float firstThrowDelay = 3f;
     [Tooltip("Random seconds between throws with a full fleet (min, max).")]
-    [SerializeField] private Vector2 fullFleetInterval = new Vector2(3f, 4.5f);
+    [SerializeField] private Vector2 fullFleetInterval = new Vector2(1.5f, 2.5f);
     [Tooltip("Random seconds between throws with one bug left (min, max).")]
-    [SerializeField] private Vector2 lastBugInterval = new Vector2(1f, 1.5f);
+    [SerializeField] private Vector2 lastBugInterval = new Vector2(0.5f, 1f);
     [Tooltip("How long the pickup is telegraphed before the throw.")]
     [SerializeField] private float telegraphTime = 0.5f;
 

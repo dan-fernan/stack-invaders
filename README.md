@@ -44,7 +44,7 @@ instructor's code and documenting how this project handles each one instead (see
 Bugs are code that doesn't do what it's supposed to, so the fleet's attack is a bug being
 recompiled into raw bits and thrown at the developer.
 
-1. **Pickup:** about every 3–4.5 s (dropping to 1–1.5 s as the fleet shrinks), a bug with a
+1. **Pickup:** 1.5–2.5 s after the previous throw ends (dropping to 0.5–1 s as the fleet shrinks), a bug with a
    living neighbor is picked. The neighbor flashes white and the bug wobbles for 0.5 s as a warning.
 2. **Throw:** the bug splits into a **0** and a **1** in its own color, launched 35° to either
    side of a straight line to the ship.
