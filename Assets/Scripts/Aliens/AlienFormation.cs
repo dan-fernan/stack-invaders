@@ -26,10 +26,10 @@ public class AlienFormation : MonoBehaviour
     [SerializeField] private Vector2 spacing = new Vector2(1f, 0.75f);
 
     [Header("March")]
-    [Tooltip("Horizontal distance per step (0.125 = 2 pixels at 16 PPU).")]
-    [SerializeField] private float stepX = 0.125f;
-    [Tooltip("Distance dropped when the formation hits an edge.")]
-    [SerializeField] private float stepDown = 0.25f;
+    [Tooltip("Horizontal distance per step (0.25 = 4 pixels at 16 PPU).")]
+    [SerializeField] private float stepX = 0.25f;
+    [Tooltip("Distance dropped toward the player each time the formation hits an edge (0.5 = 8 pixels).")]
+    [SerializeField] private float stepDown = 0.5f;
     [Tooltip("Seconds between steps with a full formation.")]
     [SerializeField] private float slowestStepInterval = 0.45f;
     [Tooltip("Seconds between steps when one alien is left.")]
