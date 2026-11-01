@@ -18,6 +18,7 @@ public class Alien : MonoBehaviour
     private Sprite frameA;
     private Sprite frameB;
     private bool showingA = true;
+    private bool isDead;
 
     private void Awake()
     {
@@ -43,6 +44,8 @@ public class Alien : MonoBehaviour
     /// <summary>Destroy this alien (bullets will call this).</summary>
     public void Kill()
     {
+        if (isDead) return; // two bullets can hit in the same frame
+        isDead = true;
         Killed?.Invoke(this);
         Destroy(gameObject);
     }

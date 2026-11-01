@@ -7,6 +7,7 @@ using UnityEngine;
 /// Movement is in discrete steps like the original arcade game; the time between
 /// steps shrinks as aliens die (assignment requirement: "remaining aliens speed up").
 /// </summary>
+[RequireComponent(typeof(Rigidbody2D))]
 public class AlienFormation : MonoBehaviour
 {
     [Serializable]
@@ -49,6 +50,9 @@ public class AlienFormation : MonoBehaviour
     private void Awake()
     {
         cam = Camera.main;
+        // Kinematic body: the alien colliders become one compound body that we move
+        // by hand, rather than static colliders being teleported every step.
+        GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
     }
 
     private void Start()
