@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -28,6 +29,10 @@ public class BitProjectile : MonoBehaviour, IShootable
 
     public event Action<BitProjectile, Outcome> Resolved;
 
+    /// <summary>Every bit currently in play (lets Java's garbage collector find them without a scene search).</summary>
+    public static IReadOnlyCollection<BitProjectile> Active => active;
+    private static readonly HashSet<BitProjectile> active = new HashSet<BitProjectile>();
+
     private Rigidbody2D rb;
     private Camera cam;
     private Transform target;
@@ -40,6 +45,21 @@ public class BitProjectile : MonoBehaviour, IShootable
         rb = GetComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Kinematic;
         cam = Camera.main;
+    }
+
+    private void OnEnable() => active.Add(this);
+    private void OnDisable() => active.Remove(this);
+
+    /// <summary>
+    /// Garbage-collected: pops and flies straight home from where it is, harmless.
+    /// Returns false if the bit was already heading home or resolved.
+    /// </summary>
+    public bool Collect()
+    {
+        if (resolved || state == State.Returning) return false;
+        popEffect.Spawn(transform.position, GetComponent<SpriteRenderer>().color);
+        state = State.Returning;
+        return true;
     }
 
     /// <param name="homeSlot">Transform of the alien this bit came from (it keeps marching while hidden).</param>

@@ -18,8 +18,9 @@ instructor's code and documenting how this project handles each one instead (see
 | Key | Action |
 | --- | --- |
 | A / D (or ← / →) | Move |
-| Space | Start the game from the start screen (the first press skips the typing) |
-| Space (hold) | Shoot |
+| Space | On the start screen: skip the typing, then pick the highlighted language |
+| W / S (or ↑ / ↓), 1–3 | Choose a language on the start screen |
+| Space (hold) | Attack with your language's weapon (Java: throw coffee) |
 | R | Restart after a win or game over |
 
 ## Required features
@@ -35,9 +36,9 @@ instructor's code and documenting how this project handles each one instead (see
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| Better graphics for aliens and ship | ✅ | Original pixel art: a ship, three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
+| Better graphics for aliens and ship | ✅ | Original pixel art: a developer character who holds their language's weapon (a steaming coffee mug for Java), three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
 | Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). The fleet's bit attack (below) removes one heart per hit, followed by 1 s of invulnerability while the ship blinks. Running out of hearts ends the game. |
-| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 55 warnings (bugs)`; Space skips the typing, then starts the game. **Win:** `BUILD PASSING … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
+| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 55 warnings (bugs)`; Space skips the typing, then a language select menu appears (W/S or 1–3 to choose, Space to run). **Win:** `BUILD PASSING … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
 | Animations when collisions occur | ✅ | Pixel-art flipbook effects (`OneShotAnimation`), tinted to the color of whatever was hit. **Bug shot:** the bug flattens, bursts into a splat, then scatters into pixels (`BugSquash`). **Bit shot, or bit hits the ship:** a small pixel burst (`BitPop`). **Ship hit:** a 0.2 s camera shake in whole game pixels, so the image stays on the pixel grid (`CameraShake`), plus the invulnerability blink. **Bug rebuilt:** a pop in the bug's color when its bit returns. |
 
 ### Fleet attack: bugs thrown as bits
@@ -61,6 +62,24 @@ Only one throw is in the air at a time. Implementation: `FleetThrower` (timing, 
 deciding the outcome), `BitProjectile` (homing, returning, hits), `AlienFormation.TryPickThrow()`
 (finding a neighbor on the grid), and `Alien.SetAway()`, `Flash()` and `Wobble()`. Player
 bullets hit anything that implements `IShootable`, so they handle bugs and bits the same way.
+
+## Languages (weapon select)
+
+The player is a pixel-art developer, and the language picked on the start screen decides what
+they hold and how they fight. This is the spec's core "other idea" (it still needs instructor
+approval to count toward the optional items). Java is playable; Python and C++ appear in the
+menu as `(coming soon)`, and choosing one prints `error: no compiler found for …`.
+
+| Java mechanic | How it works | Where |
+| --- | --- | --- |
+| Coffee throw | Holding Space throws coffee cups (9 units/s, slower than a bullet). A cup smashes on the first thing it touches and splashes everything within 0.7 units. Hitting a bug from below, that's the bug plus its left and right neighbors. The splash also destroys bits. | `CoffeeCup`, `JavaWeapon` |
+| JIT warmup | The first throws are slow (0.8 s apart). Each consecutive throw adds heat, so after six throws they come every 0.25 s, like the JVM optimizing hot code. After 0.6 s without throwing, the JIT cools back down. | `JavaWeapon.Heat` |
+| Garbage collector | Runs automatically every 10 s, like the JVM's GC. Every hostile bit on screen pops and flies home harmlessly, where its bug rebuilds. | `GarbageCollector`, `BitProjectile.Collect()` |
+| HUD | Top-right: `JIT [######----]  GC 7s`, and `System.gc() freed N bits` after a collection. The text is only rebuilt when a value changes (see code issue 1). | `JavaHud` |
+
+The menu is `LanguageSelect` with a list of `LanguageOption`s. Each option names the held-item
+sprite, the scripts to enable while it's chosen, and an optional HUD. Adding Python or C++ means
+writing their scripts and filling in a new entry; `GameManager` doesn't change.
 
 ## Code issues in the instructor's project
 
@@ -199,12 +218,15 @@ fixed `stepDown` distance in a single step, with no timers.
 Assets/
   Scripts/
     GameManager.cs            win/lose rules, game-over screen, restart
-    Player/                   PlayerController (move + clamp), PlayerShooter, Bullet, PlayerHealth
+    Player/                   PlayerController (move + clamp), PlayerHealth,
+                              PlayerShooter + Bullet (generic blaster, not in the scene; base for Python)
+    Languages/                LanguageSelect, LanguageOption
+      Java/                   JavaWeapon (coffee throw + JIT), CoffeeCup, GarbageCollector
     Aliens/                   AlienFormation (spawn, march, speed-up), Alien, FleetThrower, BitProjectile
-    UI/                       HeartsDisplay
+    UI/                       HeartsDisplay, JavaHud
     Effects/                  OneShotAnimation (pixel flipbooks), CameraShake
     IShootable.cs             anything player bullets can destroy
-  Prefabs/                    Alien, Bullet, Bit, Effects/ (BugSquash, BitPop)
+  Prefabs/                    Alien, Bullet, Bit, Languages/ (CoffeeCup), Effects/ (BugSquash, BitPop, CoffeeSplash)
   Art/Sprites/                pixel-art sprites (16 PPU, point filtered)
   Art/Fonts/                  VT323 font + license
 ```

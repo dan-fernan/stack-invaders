@@ -26,6 +26,11 @@ public class GameManager : MonoBehaviour
     [FormerlySerializedAs("disableOnGameOver")]
     [SerializeField] private MonoBehaviour[] gameplayBehaviours;
 
+    [Header("Language select")]
+    [SerializeField] private LanguageSelect languageSelect;
+    [Tooltip("Sprite renderer for the item the developer holds.")]
+    [SerializeField] private SpriteRenderer heldItem;
+
     [Header("Terminal screen (start / win / game over)")]
     [FormerlySerializedAs("gameOverPanel")]
     [SerializeField] private GameObject screenPanel;
@@ -40,9 +45,18 @@ public class GameManager : MonoBehaviour
     private State state = State.Title;
     private Coroutine typing;
     private string fullTitleText;
+    private LanguageOption language;
 
     private void Awake()
     {
+        // Every language's weapon, abilities and HUD stay off until one is picked.
+        foreach (LanguageOption option in languageSelect.Options)
+        {
+            foreach (MonoBehaviour behaviour in option.behaviours)
+                behaviour.enabled = false;
+            if (option.hud != null) option.hud.SetActive(false);
+        }
+        heldItem.enabled = false;
         SetGameplayRunning(false);
     }
 
@@ -66,8 +80,7 @@ public class GameManager : MonoBehaviour
             "$ ./stack-invaders\n" +
             "Compiling...\n" +
             "  [####################] 100%\n" +
-            $"Build succeeded with {formation.AliveCount} warnings (bugs)\n\n" +
-            "> press SPACE to run";
+            $"Build succeeded with {formation.AliveCount} warnings (bugs)\n\n";
         ShowScreen("", titleColor);
         typing = StartCoroutine(TypeOut(fullTitleText));
     }
@@ -79,9 +92,15 @@ public class GameManager : MonoBehaviour
 
         switch (state)
         {
-            case State.Title when kb.spaceKey.wasPressedThisFrame:
-                if (typing != null) FinishTyping(); // first press skips the animation
-                else StartGame();
+            case State.Title when typing != null:
+                if (kb.spaceKey.wasPressedThisFrame) FinishTyping(); // skip the animation
+                break;
+
+            case State.Title:
+                if (languageSelect.HandleInput(kb, out LanguageOption chosen, out bool changed))
+                    StartGame(chosen);
+                else if (changed)
+                    ShowTitleMenu();
                 break;
 
             case State.GameOver when kb.rKey.wasPressedThisFrame:
@@ -91,8 +110,16 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void StartGame()
+    private void ShowTitleMenu() => screenText.text = fullTitleText + languageSelect.Render();
+
+    private void StartGame(LanguageOption chosen)
     {
+        language = chosen;
+        heldItem.sprite = chosen.heldItem;
+        heldItem.enabled = true;
+        // HUD first, so it is subscribed before the weapon publishes its initial state.
+        if (chosen.hud != null) chosen.hud.SetActive(true);
+
         state = State.Playing;
         screenPanel.SetActive(false);
         SetGameplayRunning(true);
@@ -157,6 +184,9 @@ public class GameManager : MonoBehaviour
         Time.timeScale = running ? 1f : 0f;
         foreach (MonoBehaviour behaviour in gameplayBehaviours)
             behaviour.enabled = running;
+        if (language != null)
+            foreach (MonoBehaviour behaviour in language.behaviours)
+                behaviour.enabled = running;
     }
 
     private void ShowScreen(string text, Color color)
@@ -178,12 +208,13 @@ public class GameManager : MonoBehaviour
             yield return c == '\n' ? new WaitForSecondsRealtime(typeDelay * 10f) : wait;
         }
         typing = null;
+        ShowTitleMenu();
     }
 
     private void FinishTyping()
     {
         StopCoroutine(typing);
         typing = null;
-        screenText.text = fullTitleText;
+        ShowTitleMenu();
     }
 }
