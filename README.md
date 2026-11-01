@@ -35,9 +35,31 @@ instructor's code and documenting how this project handles each one instead (see
 | Feature | Status | Notes |
 | --- | --- | --- |
 | Better graphics for aliens and ship | ✅ | Original pixel art: a ship, three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
-| Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). Running out of hearts ends the game. |
+| Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). The fleet's bit attack (below) removes one heart per hit, followed by 1 s of invulnerability while the ship blinks. Running out of hearts ends the game. |
 | Start and ending screens | 🚧 In progress | The game-over screen is done: a terminal-style stack trace naming the cause of death (`OutOfHeartsException`, `BugsInProductionException`). The start screen and win screen are still to do. |
 | _TBD_ | ⬜ | |
+
+### Fleet attack: bugs thrown as bits
+
+Bugs are code that doesn't do what it's supposed to, so the fleet's attack is a bug being
+recompiled into raw bits and thrown at the developer.
+
+1. **Pickup:** about every 3–4.5 s (dropping to 1–1.5 s as the fleet shrinks), a bug with a
+   living neighbor is picked. The neighbor flashes white and the bug wobbles for 0.5 s as a warning.
+2. **Throw:** the bug splits into a **0** and a **1** in its own color, launched 35° to either
+   side of a straight line to the ship.
+3. **Homing:** the bits steer toward the ship with a limited turn rate while they're above it.
+   Once they pass the ship's row they stop steering, so a late sidestep dodges them.
+4. **Return:** bits that leave the screen re-enter from the top and fly back to their bug's slot,
+   which keeps marching with the formation. While returning they can't hurt the player.
+5. **Resolution:** a bit that hits the ship removes a heart and is used up. When both bits are
+   resolved, the bug **rebuilds if at least one bit made it home**. Otherwise (for example, both
+   were shot) the bug dies.
+
+Only one throw is in the air at a time. Implementation: `FleetThrower` (timing, picking a bug,
+deciding the outcome), `BitProjectile` (homing, returning, hits), `AlienFormation.TryPickThrow()`
+(finding a neighbor on the grid), and `Alien.SetAway()`, `Flash()` and `Wobble()`. Player
+bullets hit anything that implements `IShootable`, so they handle bugs and bits the same way.
 
 ## Code issues in the instructor's project
 
@@ -177,9 +199,10 @@ Assets/
   Scripts/
     GameManager.cs            win/lose rules, game-over screen, restart
     Player/                   PlayerController (move + clamp), PlayerShooter, Bullet, PlayerHealth
-    Aliens/                   AlienFormation (spawn, march, speed-up), Alien
+    Aliens/                   AlienFormation (spawn, march, speed-up), Alien, FleetThrower, BitProjectile
     UI/                       HeartsDisplay
-  Prefabs/                    Alien, Bullet
+    IShootable.cs             anything player bullets can destroy
+  Prefabs/                    Alien, Bullet, Bit
   Art/Sprites/                pixel-art sprites (16 PPU, point filtered)
   Art/Fonts/                  VT323 font + license
 ```

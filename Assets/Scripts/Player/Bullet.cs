@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Player projectile. Flies straight up, kills the first alien it touches,
+/// Player projectile. Flies straight up, destroys the first IShootable it touches,
 /// and cleans itself up once it leaves the top of the screen.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D))]
@@ -29,12 +29,12 @@ public class Bullet : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // A bullet can overlap two aliens in the same physics step; only count the first.
+        // A bullet can overlap two targets in the same physics step; only count the first.
         if (spent) return;
-        if (!other.TryGetComponent(out Alien alien)) return;
+        if (!other.TryGetComponent(out IShootable target)) return;
 
         spent = true;
-        alien.Kill();
+        target.OnShot();
         Destroy(gameObject);
     }
 }

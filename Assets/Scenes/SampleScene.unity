@@ -473,6 +473,7 @@ MonoBehaviour:
   - {fileID: 982252446}
   - {fileID: 982252449}
   - {fileID: 1757396454}
+  - {fileID: 1757396457}
   gameOverPanel: {fileID: 1946274185}
   gameOverText: {fileID: 1602231718}
 --- !u!4 &802972345
@@ -589,6 +590,8 @@ GameObject:
   - component: {fileID: 982252446}
   - component: {fileID: 982252449}
   - component: {fileID: 982252450}
+  - component: {fileID: 982252452}
+  - component: {fileID: 982252451}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -712,6 +715,81 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealth
   maxHearts: 3
+  invulnerableTime: 1
+  blinkInterval: 0.08
+--- !u!61 &982252451
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 982252445}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1, y: 0.75}
+    newSize: {x: 1, y: 0.75}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Size: {x: 1, y: 0.75}
+  m_EdgeRadius: 0
+--- !u!50 &982252452
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 982252445}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
 --- !u!1 &1602231717
 GameObject:
   m_ObjectHideFlags: 0
@@ -802,6 +880,7 @@ GameObject:
   - component: {fileID: 1757396455}
   - component: {fileID: 1757396454}
   - component: {fileID: 1757396456}
+  - component: {fileID: 1757396457}
   m_Layer: 0
   m_Name: AlienFormation
   m_TagString: Untagged
@@ -825,18 +904,33 @@ MonoBehaviour:
   rows:
   - frameA: {fileID: 21300000, guid: cfa820a15b4c4446cb354eed91dcb22e, type: 3}
     frameB: {fileID: 21300000, guid: 86f7ecebb904a421290f63b000605c13, type: 3}
+    flashA: {fileID: 21300000, guid: 2f0ce7ebe04df4986b8f8b0600a47636, type: 3}
+    flashB: {fileID: 21300000, guid: 9e8dbb7c7c76443dea4da45086a62c47, type: 3}
+    color: {r: 0.7372549, g: 0.54901963, b: 1, a: 1}
     points: 30
   - frameA: {fileID: 21300000, guid: 8f1501ae2e1f8439ba05c63e83c0bbc5, type: 3}
     frameB: {fileID: 21300000, guid: bb445cf27f174407a9b166137b5ad04b, type: 3}
+    flashA: {fileID: 21300000, guid: a22a8c3bfddf34469bfaa242202b9aab, type: 3}
+    flashB: {fileID: 21300000, guid: 5b600b092149940da8fdfebebd336570, type: 3}
+    color: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
     points: 20
   - frameA: {fileID: 21300000, guid: 8f1501ae2e1f8439ba05c63e83c0bbc5, type: 3}
     frameB: {fileID: 21300000, guid: bb445cf27f174407a9b166137b5ad04b, type: 3}
+    flashA: {fileID: 21300000, guid: a22a8c3bfddf34469bfaa242202b9aab, type: 3}
+    flashB: {fileID: 21300000, guid: 5b600b092149940da8fdfebebd336570, type: 3}
+    color: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
     points: 20
   - frameA: {fileID: 21300000, guid: 4f8820a0684544294bf03cff624fa5b9, type: 3}
     frameB: {fileID: 21300000, guid: dcf28a2ec461e4997a02be1ae0099536, type: 3}
+    flashA: {fileID: 21300000, guid: 813c2a0ca971d4c49bb38c3d4cc0522c, type: 3}
+    flashB: {fileID: 21300000, guid: c0429de9579cd41b1b8349637cffd402, type: 3}
+    color: {r: 0.8235294, g: 0.6, b: 0.13333334, a: 1}
     points: 10
   - frameA: {fileID: 21300000, guid: 4f8820a0684544294bf03cff624fa5b9, type: 3}
     frameB: {fileID: 21300000, guid: dcf28a2ec461e4997a02be1ae0099536, type: 3}
+    flashA: {fileID: 21300000, guid: 813c2a0ca971d4c49bb38c3d4cc0522c, type: 3}
+    flashB: {fileID: 21300000, guid: c0429de9579cd41b1b8349637cffd402, type: 3}
+    color: {r: 0.8235294, g: 0.6, b: 0.13333334, a: 1}
     points: 10
   columns: 11
   spacing: {x: 1, y: 0.75}
@@ -887,6 +981,29 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
+--- !u!114 &1757396457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1757396453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe47a5c1c8a0f4a6fba4d6fbe89febc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FleetThrower
+  formation: {fileID: 1757396454}
+  player: {fileID: 982252448}
+  bitPrefab: {fileID: 2270727926921080845, guid: dfc2dfcb5354b454b997bfad7538a3be, type: 3}
+  zeroSprite: {fileID: 21300000, guid: 2d1b177a9c5134fa8a5b5c4226e1ae79, type: 3}
+  oneSprite: {fileID: 21300000, guid: 6912cd62b1a6b4d24a09e751918aabd4, type: 3}
+  firstThrowDelay: 3
+  fullFleetInterval: {x: 3, y: 4.5}
+  lastBugInterval: {x: 1, y: 1.5}
+  telegraphTime: 0.5
+  spreadAngle: 35
+  bitSeparation: 0.2
 --- !u!1 &1946274185
 GameObject:
   m_ObjectHideFlags: 0

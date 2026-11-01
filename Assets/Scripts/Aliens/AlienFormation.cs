@@ -15,6 +15,11 @@ public class AlienFormation : MonoBehaviour
     {
         public Sprite frameA;
         public Sprite frameB;
+        [Tooltip("White silhouettes used when this alien flashes (telegraphing a throw).")]
+        public Sprite flashA;
+        public Sprite flashB;
+        [Tooltip("Body color; thrown bits are tinted with it.")]
+        public Color color = Color.white;
         public int points = 10;
     }
 
@@ -44,19 +49,30 @@ public class AlienFormation : MonoBehaviour
 
     public int AliveCount => aliens.Count;
 
-    /// <summary>World-space bottom edge of the lowest living alien.</summary>
+    /// <summary>Living aliens (including thrown ones) as a fraction of the starting count.</summary>
+    public float FractionRemaining => totalSpawned == 0 ? 1f : (float)aliens.Count / totalSpawned;
+
+    /// <summary>
+    /// World-space bottom edge of the lowest alien present in the formation
+    /// (thrown aliens are excluded). float.MaxValue if none are present.
+    /// </summary>
     public float LowestY
     {
         get
         {
             float lowest = float.MaxValue;
             foreach (Alien alien in aliens)
-                lowest = Mathf.Min(lowest, alien.Bounds.min.y);
+                if (alien.IsPresent)
+                    lowest = Mathf.Min(lowest, alien.Bounds.min.y);
             return lowest;
         }
     }
 
+    private static readonly Vector2Int[] NeighborOffsets =
+        { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down };
+
     private readonly List<Alien> aliens = new List<Alien>();
+    private Alien[,] grid;
     private int totalSpawned;
     private int direction = 1;
     private float stepTimer;
@@ -77,6 +93,7 @@ public class AlienFormation : MonoBehaviour
 
     private void Spawn()
     {
+        grid = new Alien[rows.Length, columns];
         float width = (columns - 1) * spacing.x;
         for (int r = 0; r < rows.Length; r++)
         {
@@ -85,9 +102,10 @@ public class AlienFormation : MonoBehaviour
                 Vector3 localPos = new Vector3(c * spacing.x - width / 2f, -r * spacing.y, 0f);
                 Alien alien = Instantiate(alienPrefab, transform.TransformPoint(localPos), Quaternion.identity, transform);
                 alien.name = $"Bug_{r}_{c}";
-                alien.Init(rows[r].frameA, rows[r].frameB, rows[r].points);
+                alien.Init(rows[r], r, c);
                 alien.Killed += OnAlienKilled;
                 aliens.Add(alien);
+                grid[r, c] = alien;
             }
         }
         totalSpawned = aliens.Count;
@@ -112,14 +130,16 @@ public class AlienFormation : MonoBehaviour
     /// </summary>
     private float CurrentStepInterval()
     {
-        float remaining = (float)aliens.Count / totalSpawned;
+        float remaining = FractionRemaining;
         return Mathf.Lerp(fastestStepInterval, slowestStepInterval, remaining * remaining);
     }
 
     private void Step()
     {
+        // Every remaining alien is thrown: hold position until one comes home.
+        if (!GetHorizontalExtents(out float minX, out float maxX)) return;
+
         float halfView = cam.orthographicSize * cam.aspect - edgePadding;
-        GetHorizontalExtents(out float minX, out float maxX);
 
         bool hitEdge = (direction > 0 && maxX + stepX > cam.transform.position.x + halfView)
                     || (direction < 0 && minX - stepX < cam.transform.position.x - halfView);
@@ -140,23 +160,69 @@ public class AlienFormation : MonoBehaviour
         Stepped?.Invoke();
     }
 
-    /// <summary>World-space left/right edges of the living aliens' sprites.</summary>
-    private void GetHorizontalExtents(out float minX, out float maxX)
+    /// <summary>
+    /// World-space left/right edges of the sprites of aliens present in the formation.
+    /// Returns false if no alien is present (all remaining ones are thrown).
+    /// </summary>
+    private bool GetHorizontalExtents(out float minX, out float maxX)
     {
         minX = float.MaxValue;
         maxX = float.MinValue;
+        bool any = false;
         foreach (Alien alien in aliens)
         {
+            if (!alien.IsPresent) continue;
             Bounds b = alien.Bounds;
             if (b.min.x < minX) minX = b.min.x;
             if (b.max.x > maxX) maxX = b.max.x;
+            any = true;
         }
+        return any;
+    }
+
+    /// <summary>
+    /// Picks a random present alien that has a present grid neighbor (left/right/above/below).
+    /// The neighbor "picks it up" and throws it at the player.
+    /// </summary>
+    public bool TryPickThrow(out Alien target, out Alien neighbor)
+    {
+        var candidates = new List<(Alien target, Alien neighbor)>();
+        foreach (Alien alien in aliens)
+        {
+            if (!alien.IsPresent) continue;
+            Alien n = RandomPresentNeighbor(alien);
+            if (n != null) candidates.Add((alien, n));
+        }
+
+        if (candidates.Count == 0)
+        {
+            target = neighbor = null;
+            return false;
+        }
+
+        (target, neighbor) = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+        return true;
+    }
+
+    private Alien RandomPresentNeighbor(Alien alien)
+    {
+        int start = UnityEngine.Random.Range(0, NeighborOffsets.Length);
+        for (int i = 0; i < NeighborOffsets.Length; i++)
+        {
+            Vector2Int o = NeighborOffsets[(start + i) % NeighborOffsets.Length];
+            int r = alien.Row + o.y, c = alien.Column + o.x;
+            if (r < 0 || r >= grid.GetLength(0) || c < 0 || c >= grid.GetLength(1)) continue;
+            Alien n = grid[r, c];
+            if (n != null && n.IsPresent) return n;
+        }
+        return null;
     }
 
     private void OnAlienKilled(Alien alien)
     {
         alien.Killed -= OnAlienKilled;
         aliens.Remove(alien);
+        grid[alien.Row, alien.Column] = null;
         if (aliens.Count == 0) Cleared?.Invoke();
     }
 }
