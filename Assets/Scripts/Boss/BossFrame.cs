@@ -10,7 +10,7 @@ using UnityEngine;
 /// while diving), then fly back to its slot if it misses.
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer), typeof(Collider2D))]
-public class BossFrame : MonoBehaviour, IShootable, IParryable
+public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
 {
     [Tooltip("Shows N on the frame's body.")]
     [SerializeField] private SpriteRenderer label;

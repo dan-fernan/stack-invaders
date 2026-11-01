@@ -5,7 +5,7 @@ using UnityEngine;
 /// <summary>
 /// Runs the sequence of waves. Each wave is one or more formations, each with its own
 /// layout, lane and throw pacing (every formation brings its own FleetThrower).
-/// GameManager decides what happens between waves; this class only spawns, pauses
+/// GameManager decides the order of waves and bosses; this class only spawns, pauses
 /// and reports.
 /// </summary>
 public class WaveManager : MonoBehaviour
@@ -30,8 +30,6 @@ public class WaveManager : MonoBehaviour
     public class Wave
     {
         public string name = "Wave";
-        [Tooltip("Terminal lines shown before this wave starts (not used for the first wave).")]
-        [TextArea] public string intro;
         public FormationSpawn[] formations;
     }
 
@@ -41,10 +39,8 @@ public class WaveManager : MonoBehaviour
 
     /// <summary>After any formation's march step.</summary>
     public event Action Stepped;
-    /// <summary>(index of the wave just cleared, total waves). Not raised for the last wave.</summary>
+    /// <summary>(index of the wave just cleared, total waves).</summary>
     public event Action<int, int> WaveCleared;
-    /// <summary>The last wave is cleared.</summary>
-    public event Action AllWavesCleared;
     /// <summary>(index, total) when a wave spawns.</summary>
     public event Action<int, int> WaveStarted;
 
@@ -134,9 +130,6 @@ public class WaveManager : MonoBehaviour
         active.Remove(formation);
         Destroy(formation.gameObject);
 
-        if (active.Count > 0) return;
-
-        if (CurrentWave + 1 < waves.Length) WaveCleared?.Invoke(CurrentWave, waves.Length);
-        else AllWavesCleared?.Invoke();
+        if (active.Count == 0) WaveCleared?.Invoke(CurrentWave, waves.Length);
     }
 }

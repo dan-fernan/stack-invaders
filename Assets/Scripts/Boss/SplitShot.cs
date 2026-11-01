@@ -5,7 +5,7 @@ using UnityEngine;
 /// it splits into two children every splitDelay seconds, N times (1 -> 2 -> 4 -> 8 for
 /// N = 3). recurse(0) fires a shot that never splits.
 /// Shooting a shot before it splits removes its future children. Parrying sends it
-/// back up to damage the first boss frame it touches.
+/// back up to hit the first boss body part (IEnemyBody) it touches.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D), typeof(SpriteRenderer))]
 public class SplitShot : MonoBehaviour, IShootable, IParryable
@@ -26,10 +26,11 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
     private float age;
     private bool parried;
     private bool done;
+    private string parryLabel;
 
     public bool IsDangerous => !done && !parried;
     public Vector3 Position => transform.position;
-    public string ParryLabel => source != null ? source.name : "return value";
+    public string ParryLabel => parryLabel ?? (source != null ? source.name : "return value");
 
     private void Awake()
     {
@@ -45,9 +46,10 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
     /// <param name="from">The frame that fired it (parried shots fly back toward it).</param>
     /// <param name="glyph">Optional sprite override (return values fall as their digit).</param>
     public void Launch(BossFrame from, int splits, Vector2 direction, Color color,
-                       Sprite glyph = null, float speedScale = 1f)
+                       Sprite glyph = null, float speedScale = 1f, string label = null)
     {
         source = from;
+        parryLabel = label;
         splitsLeft = splits;
         sprite.color = color;
         if (glyph != null)
@@ -106,9 +108,10 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
 
         if (parried)
         {
-            if (other.TryGetComponent(out BossFrame frame) && !frame.IsDead)
+            // Parried: hits the first boss body part it touches (a frame, a search cell...).
+            if (other.TryGetComponent(out IEnemyBody body))
             {
-                frame.TakeDamage(1);
+                body.OnShot();
                 Finish(true);
             }
             return;

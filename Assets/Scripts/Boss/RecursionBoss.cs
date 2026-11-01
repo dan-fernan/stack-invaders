@@ -18,7 +18,7 @@ using UnityEngine;
 ///     Frames lost to a stack overflow crashed, so they return nothing.
 ///   - Below half HP, clones make telegraphed tail-call dives at the developer.
 /// </summary>
-public class RecursionBoss : MonoBehaviour
+public class RecursionBoss : MonoBehaviour, IBoss
 {
     [Header("Frames")]
     [SerializeField] private BossFrame framePrefab;
@@ -85,10 +85,15 @@ public class RecursionBoss : MonoBehaviour
     [SerializeField] private int pixelsPerUnit = 16;
 
     /// <summary>(current, max) root HP.</summary>
-    public event Action<int, int> RootHpChanged;
+    public event Action<int, int> HpChanged;
+    public event Action<string> LabelChanged;
     /// <summary>Raised when StackOverflowError starts (true) and ends (false).</summary>
-    public event Action<bool> OverflowChanged;
+    public event Action<bool> StunnedChanged;
     public event Action Defeated;
+
+    public int Hp => Mathf.Max(0, Root.Hp);
+    public int MaxHp => Root.MaxHp;
+    public string Label => IsStunned ? "StackOverflowError!" : $"recurse({maxDepth})";
 
     public BossFrame Root { get; private set; }
     public int FrameCount => frames.Count;
@@ -124,7 +129,6 @@ public class RecursionBoss : MonoBehaviour
     /// <summary>0 at full root HP, 1 when nearly dead. Attacks speed up with it.</summary>
     private float Anger => 1f - (float)Root.Hp / Root.MaxHp;
 
-    private void Start() => RootHpChanged?.Invoke(Root.Hp, Root.MaxHp);
 
     private void Update()
     {
@@ -255,7 +259,7 @@ public class RecursionBoss : MonoBehaviour
 
     public void OnFrameDamaged(BossFrame frame)
     {
-        if (frame.IsRoot) RootHpChanged?.Invoke(Mathf.Max(0, frame.Hp), frame.MaxHp);
+        if (frame.IsRoot) HpChanged?.Invoke(Hp, MaxHp);
     }
 
     /// <summary>Destroys a frame and every call it made, deepest levels last.</summary>
@@ -307,7 +311,8 @@ public class RecursionBoss : MonoBehaviour
     private IEnumerator StackOverflow()
     {
         IsStunned = true;
-        OverflowChanged?.Invoke(true);
+        StunnedChanged?.Invoke(true);
+        LabelChanged?.Invoke(Label);
         foreach (BossFrame f in frames) f.Flash(overflowStunTime);
 
         yield return new WaitForSeconds(overflowStunTime);
@@ -321,7 +326,8 @@ public class RecursionBoss : MonoBehaviour
 
         IsStunned = false;
         callTimer = 0f;
-        OverflowChanged?.Invoke(false);
+        StunnedChanged?.Invoke(false);
+        LabelChanged?.Invoke(Label);
     }
 
     // ---------- Attacks ----------

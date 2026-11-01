@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8961993424451253181
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8202298935336628463}
+  - component: {fileID: 664772987419600195}
+  m_Layer: 0
+  m_Name: BinarySearchBoss
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8202298935336628463
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8961993424451253181}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &664772987419600195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8961993424451253181}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e57c5532afa440afbab013e33f2d988, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BinarySearchBoss
+  cellPrefab: {fileID: 694867852795180665, guid: a50d9a802f723496aa37fe26ed02fc1b, type: 3}
+  cellCount: 16
+  spacing: 1.1875
+  unknownGlyph: {fileID: 21300000, guid: 2babeb8595c3549699e88b8155ecc190, type: 3}
+  lessGlyph: {fileID: 21300000, guid: b856a627680924d87baf71cc4c01a04c, type: 3}
+  greaterGlyph: {fileID: 21300000, guid: 0d3c444f9e5e9484cba2fa3f6b72204b, type: 3}
+  bugGlyph: {fileID: 21300000, guid: a593f66b68462484f81d5a51b13ccdb5, type: 3}
+  unknownColor: {r: 0.34509805, g: 0.6509804, b: 1, a: 1}
+  hintColor: {r: 0.8901961, g: 0.7019608, b: 0.25490198, a: 1}
+  eliminatedColor: {r: 0.1882353, g: 0.21176471, b: 0.23921569, a: 1}
+  foundColor: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
+  finds: 3
+  comparisonBudget: 6
+  resortTime: 1.2
+  popEffect: {fileID: 6178787030115165103, guid: 926cb54ec6543413f99435354ca3a7b1, type: 3}
+  shotPrefab: {fileID: 6905535689674915539, guid: e466a1a9b0a884d82956079b7b5dd35b, type: 3}
+  fireIntervalRange: {x: 0.9, y: 0.5}

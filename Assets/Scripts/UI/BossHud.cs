@@ -2,9 +2,10 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Boss health bar across the top of the screen: a "recurse(3)" label over a pixel bar
-/// whose fill drains on hits (flashing white), with a lighter "recent damage" trail that
-/// catches up after a moment. Turns gray during StackOverflowError.
+/// Boss health bar across the top of the screen: the boss's label (e.g. "recurse(3)") over
+/// a pixel bar whose fill drains on hits (flashing white), with a lighter "recent damage"
+/// trail that catches up after a moment. Turns gray while the boss is stunned.
+/// Works with any IBoss.
 /// Only animates (Update enabled) while the fill flash or trail is still moving.
 /// </summary>
 public class BossHud : MonoBehaviour
@@ -23,21 +24,23 @@ public class BossHud : MonoBehaviour
     [Tooltip("Fraction of the bar per second the trail drains.")]
     [SerializeField] private float trailSpeed = 0.6f;
 
-    private RecursionBoss boss;
+    private IBoss boss;
     private float fraction = 1f;
     private float trailFraction = 1f;
     private float trailWait;
     private float flashUntil;
     private bool overflowing;
 
-    public void Bind(RecursionBoss target)
+    public void Bind(IBoss target)
     {
         Unbind();
         boss = target;
-        boss.RootHpChanged += OnHp;
-        boss.OverflowChanged += OnOverflow;
-        fraction = trailFraction = (float)boss.Root.Hp / boss.Root.MaxHp;
-        label.text = $"recurse({boss.Root.N})";
+        boss.HpChanged += OnHp;
+        boss.LabelChanged += OnLabel;
+        boss.StunnedChanged += OnStunned;
+        fraction = trailFraction = (float)boss.Hp / boss.MaxHp;
+        overflowing = false;
+        label.text = boss.Label;
         SetWidth(fill, fraction);
         SetWidth(trail, trailFraction);
         fillImage.color = fillColor;
@@ -49,8 +52,9 @@ public class BossHud : MonoBehaviour
     private void Unbind()
     {
         if (boss == null) return;
-        boss.RootHpChanged -= OnHp;
-        boss.OverflowChanged -= OnOverflow;
+        boss.HpChanged -= OnHp;
+        boss.LabelChanged -= OnLabel;
+        boss.StunnedChanged -= OnStunned;
         boss = null;
     }
 
@@ -64,10 +68,11 @@ public class BossHud : MonoBehaviour
         enabled = true; // animate the flash and trail
     }
 
-    private void OnOverflow(bool active)
+    private void OnLabel(string text) => label.text = text;
+
+    private void OnStunned(bool active)
     {
         overflowing = active;
-        label.text = active ? "StackOverflowError!" : $"recurse({boss.Root.N})";
         if (!enabled) fillImage.color = active ? stunnedColor : fillColor;
     }
 

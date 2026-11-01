@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Text;
 using UnityEngine;
@@ -19,17 +20,30 @@ public class GameManager : MonoBehaviour
 {
     private enum State { Title, Playing, BetweenWaves, GameOver, Won }
 
-    [SerializeField] private WaveManager waveManager;
+    /// <summary>One step of the run: a wave of formations, or a boss.</summary>
+    [Serializable]
+    public class Stage
+    {
+        public string name = "Wave 1";
+        [Tooltip("Index into the WaveManager's waves, or -1 for a boss stage.")]
+        public int waveIndex = 0;
+        [Tooltip("Boss stage: a prefab whose root has an IBoss component.")]
+        public GameObject bossPrefab;
+        public Vector2 bossPosition = new Vector2(0f, 4f);
+        [Tooltip("Terminal lines shown on the break before this stage (not used for the first stage).")]
+        [TextArea] public string intro;
 
-    [Header("Miniboss (after the last wave)")]
-    [SerializeField] private RecursionBoss bossPrefab;
-    [Tooltip("World position of the boss's root frame.")]
-    [SerializeField] private Vector2 bossPosition = new Vector2(0f, 4f);
+        public bool IsBoss => waveIndex < 0;
+    }
+
+    [SerializeField] private WaveManager waveManager;
+    [Tooltip("The run, in order: waves and bosses.")]
+    [SerializeField] private Stage[] stages;
+
+    [Header("HUD")]
     [SerializeField] private BossHud bossHud;
     [Tooltip("Hidden while the boss HUD is shown.")]
     [SerializeField] private GameObject waveHud;
-    [TextArea]
-    [SerializeField] private string bossIntro = "$ ./recurse 3\nwarning: recursive call without a depth check";
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private SpriteRenderer playerSprite;
     [Tooltip("Gameplay scripts that only run while Playing.")]
@@ -58,7 +72,9 @@ public class GameManager : MonoBehaviour
     private Coroutine typing;
     private string fullTitleText;
     private LanguageOption language;
-    private RecursionBoss boss;
+    private int stageIndex;
+    private GameObject bossObject;
+    private IBoss boss;
 
     private void Awake()
     {
@@ -70,16 +86,14 @@ public class GameManager : MonoBehaviour
             if (option.hud != null) option.hud.SetActive(false);
         }
         heldItem.enabled = false;
-        bossHud.gameObject.SetActive(false);
         SetGameplayRunning(false);
-        waveManager.StartWave(0); // spawned paused, visible behind the start screen
+        StartStage(0); // spawned paused, visible behind the start screen
     }
 
     private void OnEnable()
     {
         waveManager.Stepped += CheckInvasion;
         waveManager.WaveCleared += OnWaveCleared;
-        waveManager.AllWavesCleared += OnAllWavesCleared;
         playerHealth.Died += OnPlayerDied;
     }
 
@@ -87,7 +101,6 @@ public class GameManager : MonoBehaviour
     {
         waveManager.Stepped -= CheckInvasion;
         waveManager.WaveCleared -= OnWaveCleared;
-        waveManager.AllWavesCleared -= OnAllWavesCleared;
         playerHealth.Died -= OnPlayerDied;
     }
 
@@ -97,7 +110,7 @@ public class GameManager : MonoBehaviour
             "$ ./stack-invaders\n" +
             "Compiling...\n" +
             "  [####################] 100%\n" +
-            $"Build succeeded with {waveManager.TotalBugs} warnings (bugs) in {waveManager.WaveCount} waves\n\n";
+            $"Build succeeded with {waveManager.TotalBugs} warnings (bugs) and {BossCount} errors (bosses)\n\n";
         ShowScreen("", titleColor);
         typing = StartCoroutine(TypeOut(fullTitleText));
     }
@@ -108,8 +121,12 @@ public class GameManager : MonoBehaviour
         if (kb == null) return;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        // Debug: F10 clears the current wave (three presses reach the miniboss).
-        if (state == State.Playing && kb.f10Key.wasPressedThisFrame) waveManager.DebugClearWave();
+        // Debug: F10 clears the current stage (a wave or a boss).
+        if (state == State.Playing && kb.f10Key.wasPressedThisFrame)
+        {
+            if (stages[stageIndex].IsBoss) StageCleared();
+            else waveManager.DebugClearWave();
+        }
 #endif
 
         switch (state)
@@ -171,18 +188,70 @@ public class GameManager : MonoBehaviour
             "  at Program.Main() no try/catch left");
     }
 
-    private void OnWaveCleared(int cleared, int total)
+    private int BossCount
+    {
+        get
+        {
+            int count = 0;
+            foreach (Stage stage in stages) if (stage.IsBoss) count++;
+            return count;
+        }
+    }
+
+    /// <summary>Spawns stage <paramref name="index"/>, paused until gameplay resumes.</summary>
+    private void StartStage(int index)
+    {
+        stageIndex = index;
+        Stage stage = stages[index];
+
+        if (!stage.IsBoss)
+        {
+            waveManager.StartWave(stage.waveIndex);
+            waveHud.SetActive(true);
+            bossHud.gameObject.SetActive(false);
+            return;
+        }
+
+        bossObject = Instantiate(stage.bossPrefab, stage.bossPosition, Quaternion.identity);
+        boss = bossObject.GetComponent<IBoss>();
+        ((MonoBehaviour)boss).enabled = false; // paused behind the terminal
+        boss.SetTarget(playerSprite.transform);
+        boss.Defeated += StageCleared;
+        waveHud.SetActive(false);
+        bossHud.gameObject.SetActive(true);
+        bossHud.Bind(boss);
+    }
+
+    private void OnWaveCleared(int wave, int total) => StageCleared();
+
+    /// <summary>The current wave or boss is done: break, then the next stage, or the win.</summary>
+    private void StageCleared()
     {
         if (state != State.Playing) return;
 
+        if (boss != null)
+        {
+            boss.Defeated -= StageCleared;
+            Destroy(bossObject);
+            boss = null;
+            bossObject = null;
+        }
+
+        string passed = stages[stageIndex].name;
+        if (stageIndex + 1 >= stages.Length)
+        {
+            Win();
+            return;
+        }
+
         state = State.BetweenWaves;
         SetGameplayRunning(false);
-        int next = cleared + 1;
-        waveManager.StartWave(next); // spawned paused behind the terminal
+        StartStage(stageIndex + 1);
+        Stage next = stages[stageIndex];
         ShowScreen(
-            $"Wave {cleared + 1}/{total} passed\n\n" +
-            waveManager.Current.intro +
-            $"\n\nWave {next + 1}/{total} incoming...",
+            $"{passed} passed\n\n" +
+            next.intro +
+            $"\n\n{next.name} incoming...",
             titleColor);
         StartCoroutine(ResumeAfterBreak());
     }
@@ -194,43 +263,17 @@ public class GameManager : MonoBehaviour
 
         state = State.Playing;
         screenPanel.SetActive(false);
-        // Re-enabling the language scripts resets per-wave state (JIT heat, GC timer).
+        // Re-enabling the language scripts resets per-stage state (JIT heat, GC timer).
         SetGameplayRunning(true);
     }
 
-    /// <summary>All waves cleared: break, then the recursion miniboss.</summary>
-    private void OnAllWavesCleared()
+    private void Win()
     {
-        if (state != State.Playing) return;
-
-        state = State.BetweenWaves;
-        SetGameplayRunning(false);
-
-        boss = Instantiate(bossPrefab, bossPosition, Quaternion.identity);
-        boss.enabled = false; // paused behind the terminal
-        boss.SetTarget(playerSprite.transform);
-        boss.Defeated += OnBossDefeated;
-        waveHud.SetActive(false);
-        bossHud.gameObject.SetActive(true);
-        bossHud.Bind(boss);
-
-        ShowScreen(
-            $"All {waveManager.WaveCount}/{waveManager.WaveCount} waves passed\n\n" +
-            bossIntro +
-            "\n\nMiniboss incoming...",
-            titleColor);
-        StartCoroutine(ResumeAfterBreak());
-    }
-
-    private void OnBossDefeated()
-    {
-        if (state != State.Playing) return;
-
         state = State.Won;
         SetGameplayRunning(false);
         ShowScreen(
             "BUILD PASSING\n\n" +
-            $"All tests passed: {waveManager.WaveCount} waves of bugs fixed\n" +
+            $"All tests passed: {waveManager.WaveCount} waves and {BossCount} bosses fixed\n" +
             "recurse(3) returned: call stack unwound\n" +
             $"Unhandled exceptions remaining: {playerHealth.Hearts}/{playerHealth.MaxHearts}\n\n" +
             "Process exited with code 0\n\n" +
@@ -260,7 +303,7 @@ public class GameManager : MonoBehaviour
         foreach (MonoBehaviour behaviour in gameplayBehaviours)
             behaviour.enabled = running;
         waveManager.SetRunning(running);
-        if (boss != null) boss.enabled = running;
+        if (boss != null) ((MonoBehaviour)boss).enabled = running;
         if (language != null)
             foreach (MonoBehaviour behaviour in language.behaviours)
                 behaviour.enabled = running;
