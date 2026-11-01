@@ -39,7 +39,22 @@ public class AlienFormation : MonoBehaviour
     /// <summary>Raised when the last alien is destroyed.</summary>
     public event Action Cleared;
 
+    /// <summary>Raised after every march step (the only time the formation moves).</summary>
+    public event Action Stepped;
+
     public int AliveCount => aliens.Count;
+
+    /// <summary>World-space bottom edge of the lowest living alien.</summary>
+    public float LowestY
+    {
+        get
+        {
+            float lowest = float.MaxValue;
+            foreach (Alien alien in aliens)
+                lowest = Mathf.Min(lowest, alien.Bounds.min.y);
+            return lowest;
+        }
+    }
 
     private readonly List<Alien> aliens = new List<Alien>();
     private int totalSpawned;
@@ -122,6 +137,8 @@ public class AlienFormation : MonoBehaviour
 
         foreach (Alien alien in aliens)
             alien.AdvanceFrame();
+
+        Stepped?.Invoke();
     }
 
     /// <summary>World-space left/right edges of the living aliens' sprites.</summary>
