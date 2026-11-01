@@ -27,8 +27,8 @@ instructor's code and documenting how this project handles each one instead (see
 
 | Requirement | Status | How it's met | Where |
 | --- | --- | --- | --- |
-| Remaining aliens speed up as others are destroyed | ✅ | The formation marches in discrete steps. Time between steps is interpolated from 0.45 s (full formation) to 0.04 s (last bug) using the *square* of the fraction remaining, so the speed-up ramps hardest near the end, like the arcade original. | `AlienFormation.CurrentStepInterval()` |
-| Detect when the game can no longer be won | ✅ | After every march step, `GameManager` compares the bottom edge of the **lowest living** bug to the top of the ship. Once they meet, that bug can no longer be shot before it reaches the player, so the game ends immediately, regardless of lives left. | `GameManager.CheckInvasion()`, `AlienFormation.LowestY` |
+| Remaining aliens speed up as others are destroyed | ✅ | Each formation marches in discrete steps and speeds up as *its own* bugs die. Time between steps is interpolated from 0.45 s (full formation) to 0.04 s (last bug) using the *square* of the fraction remaining, so the speed-up ramps hardest near the end, like the arcade original. | `AlienFormation.CurrentStepInterval()` |
+| Detect when the game can no longer be won | ✅ | After every march step of any formation, `GameManager` compares the bottom edge of the **lowest living** bug in *any* active formation to the top of the developer. Once they meet, that bug can no longer be shot before it reaches the player, so the game ends immediately, regardless of lives left. | `GameManager.CheckInvasion()`, `WaveManager.LowestY`, `AlienFormation.LowestY` |
 | Prevent the spaceship from moving offscreen | ✅ | The ship's x is clamped to the camera's visible half-width minus the sprite's half-width (from `SpriteRenderer.bounds`), so the whole ship stays visible at any resolution or aspect ratio. | `PlayerController.ClampToScreen()` |
 | Find and fix at least three issues in the instructor's code | ✅ | Seven issues documented below, each with the fix used in this project. | [Below](#code-issues-in-the-instructors-project) |
 
@@ -38,8 +38,9 @@ instructor's code and documenting how this project handles each one instead (see
 | --- | --- | --- |
 | Better graphics for aliens and ship | ✅ | Original pixel art: a developer character who holds their language's weapon (a steaming coffee mug for Java), three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
 | Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). The fleet's bit attack (below) removes one heart per hit, followed by 1 s of invulnerability while the ship blinks. Running out of hearts ends the game. |
-| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 55 warnings (bugs)`; Space skips the typing, then a language select menu appears (W/S or 1–3 to choose, Space to run). **Win:** `BUILD PASSING … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
+| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 175 warnings (bugs) in 3 waves`; Space skips the typing, then a language select menu appears (W/S or 1–3 to choose, Space to run). **Between waves:** a 2 s terminal break (`$ git pull origin feature/more-bugs …`). **Win** (after wave 3): `BUILD PASSING … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
 | Animations when collisions occur | ✅ | Pixel-art flipbook effects (`OneShotAnimation`), tinted to the color of whatever was hit. **Bug shot:** the bug flattens, bursts into a splat, then scatters into pixels (`BugSquash`). **Bit shot, or bit hits the ship:** a small pixel burst (`BitPop`). **Ship hit:** a 0.2 s camera shake in whole game pixels, so the image stays on the pixel grid (`CameraShake`), plus the invulnerability blink. **Bug rebuilt:** a pop in the bug's color when its bit returns. |
+| Additional levels | ✅ | Three waves, each different from the last (`WaveManager`, configured in the Inspector). **Wave 1:** the classic 5×11 formation sweeping the full width. **Wave 2:** two 4×6 formations, back-left and back-right, each bouncing between its screen edge and the midpoint, so they drop about twice as often. **Wave 3:** a 4×9 middle formation in front, with 3×6 back-left and back-right formations behind it. The back formations won't drop onto the middle one until it's cleared, so the player chooses which wave to thin out. Every formation has its own throw manager and speed-up. Hearts carry over between waves; JIT heat and the GC timer reset. A miniboss after wave 3 is planned. |
 
 ### Fleet attack: bugs thrown as bits
 
@@ -58,7 +59,7 @@ recompiled into raw bits and thrown at the developer.
    resolved, the bug **rebuilds if at least one bit made it home**. Otherwise (for example, both
    were shot) the bug dies.
 
-Only one throw is in the air at a time. Implementation: `FleetThrower` (timing, picking a bug,
+Each formation has its own `FleetThrower`, with only one of its throws in the air at a time, so wave 3 can have three throws airborne at once. Back formations throw less often (an interval multiplier per formation). Implementation: `FleetThrower` (timing, picking a bug,
 deciding the outcome), `BitProjectile` (homing, returning, hits), `AlienFormation.TryPickThrow()`
 (finding a neighbor on the grid), and `Alien.SetAway()`, `Flash()` and `Wobble()`. Player
 bullets hit anything that implements `IShootable`, so they handle bugs and bits the same way.
@@ -222,11 +223,12 @@ Assets/
                               PlayerShooter + Bullet (generic blaster, not in the scene; base for Python)
     Languages/                LanguageSelect, LanguageOption
       Java/                   JavaWeapon (coffee throw + JIT), CoffeeCup, GarbageCollector
-    Aliens/                   AlienFormation (spawn, march, speed-up), Alien, FleetThrower, BitProjectile
-    UI/                       HeartsDisplay, JavaHud
+    Aliens/                   WaveManager (waves of formations), AlienFormation (layout, lane, march, speed-up),
+                              Alien, FleetThrower, BitProjectile
+    UI/                       HeartsDisplay, JavaHud, WaveHud
     Effects/                  OneShotAnimation (pixel flipbooks), CameraShake
     IShootable.cs             anything player bullets can destroy
-  Prefabs/                    Alien, Bullet, Bit, Languages/ (CoffeeCup), Effects/ (BugSquash, BitPop, CoffeeSplash)
+  Prefabs/                    Formation, Alien, Bullet, Bit, Languages/ (CoffeeCup), Effects/ (BugSquash, BitPop, CoffeeSplash)
   Art/Sprites/                pixel-art sprites (16 PPU, point filtered)
   Art/Fonts/                  VT323 font + license
 ```

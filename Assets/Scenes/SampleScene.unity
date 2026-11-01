@@ -119,6 +119,100 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &29845577
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 29845578}
+  - component: {fileID: 29845581}
+  - component: {fileID: 29845580}
+  - component: {fileID: 29845579}
+  m_Layer: 0
+  m_Name: WaveHud
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &29845578
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 29845577}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 948229221}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMax: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 0, y: -1}
+  m_SizeDelta: {x: 80, y: 12}
+  m_Pivot: {x: 0.5, y: 1}
+--- !u!114 &29845579
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 29845577}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cad835d9fff54d01af53be732a5771f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaveHud
+  waveManager: {fileID: 1288028828}
+  label: {fileID: 29845580}
+--- !u!114 &29845580
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 29845577}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.54509807, g: 0.5803922, b: 0.61960787, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FontData:
+    m_Font: {fileID: 12800000, guid: 78dda392657c94e9a823f70accfe6804, type: 3}
+    m_FontSize: 12
+    m_FontStyle: 0
+    m_BestFit: 0
+    m_MinSize: 10
+    m_MaxSize: 40
+    m_Alignment: 1
+    m_AlignByGeometry: 0
+    m_RichText: 1
+    m_HorizontalOverflow: 1
+    m_VerticalOverflow: 0
+    m_LineSpacing: 1
+  m_Text: WAVE 1/3
+--- !u!222 &29845581
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 29845577}
+  m_CullTransparentMesh: 1
 --- !u!1 &519375511
 GameObject:
   m_ObjectHideFlags: 0
@@ -576,13 +670,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b4dbaad01f4740798da683879687f32, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
-  formation: {fileID: 1757396454}
+  waveManager: {fileID: 1288028828}
   playerHealth: {fileID: 982252450}
   playerSprite: {fileID: 982252447}
   gameplayBehaviours:
   - {fileID: 982252446}
-  - {fileID: 1757396454}
-  - {fileID: 1757396457}
   languageSelect: {fileID: 802972346}
   heldItem: {fileID: 519375513}
   screenPanel: {fileID: 1946274185}
@@ -591,6 +683,7 @@ MonoBehaviour:
   winColor: {r: 0.22352941, g: 0.827451, b: 0.3254902, a: 1}
   loseColor: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
   typeDelay: 0.02
+  betweenWavesTime: 2
 --- !u!4 &802972345
 Transform:
   m_ObjectHideFlags: 0
@@ -670,6 +763,7 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 753475164}
+  - {fileID: 29845578}
   - {fileID: 1939794975}
   - {fileID: 1946274186}
   m_Father: {fileID: 0}
@@ -960,6 +1054,108 @@ MonoBehaviour:
   coolDelay: 0.6
   coolRate: 0.7
   heatSegments: 10
+--- !u!1 &1288028827
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1288028829}
+  - component: {fileID: 1288028828}
+  m_Layer: 0
+  m_Name: WaveManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1288028828
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1288028827}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd116d7822cd04c2a9cc3991c124fb4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaveManager
+  formationPrefab: {fileID: 4222884840881777146, guid: e089d511d2aa5422d89914b1604c7484, type: 3}
+  player: {fileID: 982252448}
+  waves:
+  - name: Wave 1
+    intro: 
+    formations:
+    - name: Middle
+      position: {x: 0, y: 4}
+      rowLayout: 0000000001000000010000000200000002000000i
+      columns: 11
+      lane: 0
+      holdAboveIndex: -1
+      throwIntervalMultiplier: 1
+  - name: Wave 2
+    intro: "$ git pull origin feature/more-bugs\nMerge made by the 'ort' strategy.\n 2 formations changed, 48 insertions(+)"
+    formations:
+    - name: Back Left
+      position: {x: -5, y: 4}
+      rowLayout: 00000000010000000100000002000000i
+      columns: 6
+      lane: 1
+      holdAboveIndex: -1
+      throwIntervalMultiplier: 1.3
+    - name: Back Right
+      position: {x: 5, y: 4}
+      rowLayout: 00000000010000000100000002000000i
+      columns: 6
+      lane: 2
+      holdAboveIndex: -1
+      throwIntervalMultiplier: 1.3
+  - name: Wave 3
+    intro: '$ git merge release/all-the-bugs
+
+      Auto-merging formations...
+
+      CONFLICT: bugs on every side'
+    formations:
+    - name: Middle
+      position: {x: 0, y: 1.75}
+      rowLayout: 01000000010000000200000002000000i
+      columns: 9
+      lane: 0
+      holdAboveIndex: -1
+      throwIntervalMultiplier: 1.2
+    - name: Back Left
+      position: {x: -5, y: 4.25}
+      rowLayout: 000000000100000002000000i
+      columns: 6
+      lane: 1
+      holdAboveIndex: 0
+      throwIntervalMultiplier: 1.6
+    - name: Back Right
+      position: {x: 5, y: 4.25}
+      rowLayout: 000000000100000002000000i
+      columns: 6
+      lane: 2
+      holdAboveIndex: 0
+      throwIntervalMultiplier: 1.6
+--- !u!4 &1288028829
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1288028827}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1602231717
 GameObject:
   m_ObjectHideFlags: 0
@@ -1039,141 +1235,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: -48, y: -32}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!1 &1757396453
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1757396455}
-  - component: {fileID: 1757396454}
-  - component: {fileID: 1757396456}
-  - component: {fileID: 1757396457}
-  m_Layer: 0
-  m_Name: AlienFormation
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1757396454
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1757396453}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4685b334ca1da41e795b701f10abcafb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AlienFormation
-  alienPrefab: {fileID: 3206615621531209392, guid: 926cb46056ecf4658a63b88f03d379fd, type: 3}
-  rows:
-  - frameA: {fileID: 21300000, guid: cfa820a15b4c4446cb354eed91dcb22e, type: 3}
-    frameB: {fileID: 21300000, guid: 86f7ecebb904a421290f63b000605c13, type: 3}
-    flashA: {fileID: 21300000, guid: 2f0ce7ebe04df4986b8f8b0600a47636, type: 3}
-    flashB: {fileID: 21300000, guid: 9e8dbb7c7c76443dea4da45086a62c47, type: 3}
-    color: {r: 0.7372549, g: 0.54901963, b: 1, a: 1}
-    points: 30
-  - frameA: {fileID: 21300000, guid: 8f1501ae2e1f8439ba05c63e83c0bbc5, type: 3}
-    frameB: {fileID: 21300000, guid: bb445cf27f174407a9b166137b5ad04b, type: 3}
-    flashA: {fileID: 21300000, guid: a22a8c3bfddf34469bfaa242202b9aab, type: 3}
-    flashB: {fileID: 21300000, guid: 5b600b092149940da8fdfebebd336570, type: 3}
-    color: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
-    points: 20
-  - frameA: {fileID: 21300000, guid: 8f1501ae2e1f8439ba05c63e83c0bbc5, type: 3}
-    frameB: {fileID: 21300000, guid: bb445cf27f174407a9b166137b5ad04b, type: 3}
-    flashA: {fileID: 21300000, guid: a22a8c3bfddf34469bfaa242202b9aab, type: 3}
-    flashB: {fileID: 21300000, guid: 5b600b092149940da8fdfebebd336570, type: 3}
-    color: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
-    points: 20
-  - frameA: {fileID: 21300000, guid: 4f8820a0684544294bf03cff624fa5b9, type: 3}
-    frameB: {fileID: 21300000, guid: dcf28a2ec461e4997a02be1ae0099536, type: 3}
-    flashA: {fileID: 21300000, guid: 813c2a0ca971d4c49bb38c3d4cc0522c, type: 3}
-    flashB: {fileID: 21300000, guid: c0429de9579cd41b1b8349637cffd402, type: 3}
-    color: {r: 0.8235294, g: 0.6, b: 0.13333334, a: 1}
-    points: 10
-  - frameA: {fileID: 21300000, guid: 4f8820a0684544294bf03cff624fa5b9, type: 3}
-    frameB: {fileID: 21300000, guid: dcf28a2ec461e4997a02be1ae0099536, type: 3}
-    flashA: {fileID: 21300000, guid: 813c2a0ca971d4c49bb38c3d4cc0522c, type: 3}
-    flashB: {fileID: 21300000, guid: c0429de9579cd41b1b8349637cffd402, type: 3}
-    color: {r: 0.8235294, g: 0.6, b: 0.13333334, a: 1}
-    points: 10
-  columns: 11
-  spacing: {x: 1, y: 0.75}
-  stepX: 0.25
-  stepDown: 0.5
-  slowestStepInterval: 0.45
-  fastestStepInterval: 0.04
-  edgePadding: 0.25
---- !u!4 &1757396455
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1757396453}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 4, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!50 &1757396456
-Rigidbody2D:
-  serializedVersion: 5
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1757396453}
-  m_BodyType: 1
-  m_Simulated: 1
-  m_UseFullKinematicContacts: 0
-  m_UseAutoMass: 0
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_GravityScale: 1
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_Interpolate: 0
-  m_SleepingMode: 1
-  m_CollisionDetection: 0
-  m_Constraints: 0
---- !u!114 &1757396457
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1757396453}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe47a5c1c8a0f4a6fba4d6fbe89febc5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FleetThrower
-  formation: {fileID: 1757396454}
-  player: {fileID: 982252448}
-  bitPrefab: {fileID: 2270727926921080845, guid: dfc2dfcb5354b454b997bfad7538a3be, type: 3}
-  zeroSprite: {fileID: 21300000, guid: 2d1b177a9c5134fa8a5b5c4226e1ae79, type: 3}
-  oneSprite: {fileID: 21300000, guid: 6912cd62b1a6b4d24a09e751918aabd4, type: 3}
-  firstThrowDelay: 3
-  fullFleetInterval: {x: 1.5, y: 2.5}
-  lastBugInterval: {x: 0.5, y: 1}
-  telegraphTime: 0.5
-  spreadAngle: 35
-  bitSeparation: 0.2
 --- !u!1 &1939794971
 GameObject:
   m_ObjectHideFlags: 0
@@ -1353,6 +1414,6 @@ SceneRoots:
   - {fileID: 519420032}
   - {fileID: 619394802}
   - {fileID: 982252448}
-  - {fileID: 1757396455}
   - {fileID: 948229221}
   - {fileID: 802972345}
+  - {fileID: 1288028829}

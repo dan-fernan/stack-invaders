@@ -34,6 +34,22 @@ public class FleetThrower : MonoBehaviour
     private Alien thrownAlien;
     private int bitsInFlight;
     private bool anyReturned;
+    private float intervalScale = 1f;
+
+    private void Awake()
+    {
+        if (formation == null) formation = GetComponent<AlienFormation>();
+    }
+
+    /// <summary>
+    /// Set by the WaveManager when it spawns this formation.
+    /// </summary>
+    /// <param name="intervalMultiplier">Scales the delays between throws (2 = half as often).</param>
+    public void Init(Transform target, float intervalMultiplier)
+    {
+        player = target;
+        intervalScale = intervalMultiplier;
+    }
 
     private void OnEnable() => StartCoroutine(ThrowLoop());
 
@@ -42,7 +58,9 @@ public class FleetThrower : MonoBehaviour
 
     private IEnumerator ThrowLoop()
     {
-        yield return new WaitForSeconds(firstThrowDelay);
+        // If we were paused mid-throw, let those bits finish before starting another.
+        yield return new WaitUntil(() => bitsInFlight == 0);
+        yield return new WaitForSeconds(firstThrowDelay * intervalScale);
         while (true)
         {
             yield return ThrowOnce();
@@ -55,7 +73,7 @@ public class FleetThrower : MonoBehaviour
         float t = formation.FractionRemaining;
         float min = Mathf.Lerp(lastBugInterval.x, fullFleetInterval.x, t);
         float max = Mathf.Lerp(lastBugInterval.y, fullFleetInterval.y, t);
-        return Random.Range(min, max);
+        return Random.Range(min, max) * intervalScale;
     }
 
     private IEnumerator ThrowOnce()

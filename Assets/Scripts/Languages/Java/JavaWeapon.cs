@@ -37,7 +37,14 @@ public class JavaWeapon : MonoBehaviour
     private float lastThrowTime = float.NegativeInfinity;
     private int shownSegments = -1;
 
-    private void OnEnable() => PublishHeat(force: true);
+    // Enabled at the start of each wave: the JIT starts cold again.
+    private void OnEnable()
+    {
+        Heat = 0f;
+        nextThrowTime = 0f;
+        lastThrowTime = float.NegativeInfinity;
+        PublishHeat(force: true);
+    }
 
     private void Update()
     {

@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
-/// Spawns the bug grid and marches it side to side, dropping a row at each edge.
+/// One bug formation. Spawned by the WaveManager, which picks its layout and lane.
+/// Marches side to side within its lane, dropping toward the player at each edge.
 /// Movement is in discrete steps like the original arcade game; the time between
-/// steps shrinks as aliens die (assignment requirement: "remaining aliens speed up").
+/// steps shrinks as this formation's aliens die (assignment requirement:
+/// "remaining aliens speed up as their compatriots are destroyed").
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 public class AlienFormation : MonoBehaviour
@@ -23,11 +26,14 @@ public class AlienFormation : MonoBehaviour
         public int points = 10;
     }
 
+    /// <summary>Which part of the screen the formation marches across.</summary>
+    public enum Lane { Full, LeftHalf, RightHalf }
+
     [Header("Grid")]
     [SerializeField] private Alien alienPrefab;
-    [Tooltip("Rows from top to bottom.")]
-    [SerializeField] private AlienRow[] rows;
-    [SerializeField] private int columns = 11;
+    [Tooltip("Bug types a layout can use, referenced by index (e.g. 0 = beetle, 1 = ladybug, 2 = spider).")]
+    [FormerlySerializedAs("rows")]
+    [SerializeField] private AlienRow[] rowTypes;
     [SerializeField] private Vector2 spacing = new Vector2(1f, 0.75f);
 
     [Header("March")]
@@ -40,12 +46,16 @@ public class AlienFormation : MonoBehaviour
     [Tooltip("Seconds between steps when one alien is left.")]
     [SerializeField] private float fastestStepInterval = 0.04f;
     [SerializeField] private float edgePadding = 0.25f;
+    [Tooltip("Half-width of the gap at the screen's center that half-lane formations bounce off.")]
+    [SerializeField] private float midpointGap = 0.125f;
+    [Tooltip("Minimum space kept between this formation's bottom and the top of the formation it holds above.")]
+    [SerializeField] private float holdGap = 0.75f;
 
     /// <summary>Raised when the last alien is destroyed.</summary>
-    public event Action Cleared;
+    public event Action<AlienFormation> Cleared;
 
     /// <summary>Raised after every march step (the only time the formation moves).</summary>
-    public event Action Stepped;
+    public event Action<AlienFormation> Stepped;
 
     public int AliveCount => aliens.Count;
 
@@ -68,6 +78,19 @@ public class AlienFormation : MonoBehaviour
         }
     }
 
+    /// <summary>World-space top edge of the highest present alien. float.MinValue if none are present.</summary>
+    public float HighestY
+    {
+        get
+        {
+            float highest = float.MinValue;
+            foreach (Alien alien in aliens)
+                if (alien.IsPresent)
+                    highest = Mathf.Max(highest, alien.Bounds.max.y);
+            return highest;
+        }
+    }
+
     private static readonly Vector2Int[] NeighborOffsets =
         { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down };
 
@@ -76,6 +99,8 @@ public class AlienFormation : MonoBehaviour
     private int totalSpawned;
     private int direction = 1;
     private float stepTimer;
+    private Lane lane;
+    private AlienFormation holdAbove;
     private Camera cam;
 
     private void Awake()
@@ -84,23 +109,28 @@ public class AlienFormation : MonoBehaviour
         // Kinematic body: the alien colliders become one compound body that we move
         // by hand, rather than static colliders being teleported every step.
         GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
-        // Spawn in Awake (which runs even while this component is disabled) so the
-        // formation is visible behind the start screen before the game begins.
-        Spawn();
     }
 
-    private void Spawn()
+    /// <summary>
+    /// Builds the grid. Call once, right after instantiating.
+    /// </summary>
+    /// <param name="rowLayout">Bug type index for each row, top to bottom.</param>
+    /// <param name="holdAboveFormation">If set, this formation won't drop onto that one while it has bugs.</param>
+    public void Configure(int[] rowLayout, int columns, Lane marchLane, AlienFormation holdAboveFormation)
     {
-        grid = new Alien[rows.Length, columns];
+        lane = marchLane;
+        holdAbove = holdAboveFormation;
+
+        grid = new Alien[rowLayout.Length, columns];
         float width = (columns - 1) * spacing.x;
-        for (int r = 0; r < rows.Length; r++)
+        for (int r = 0; r < rowLayout.Length; r++)
         {
             for (int c = 0; c < columns; c++)
             {
                 Vector3 localPos = new Vector3(c * spacing.x - width / 2f, -r * spacing.y, 0f);
                 Alien alien = Instantiate(alienPrefab, transform.TransformPoint(localPos), Quaternion.identity, transform);
                 alien.name = $"Bug_{r}_{c}";
-                alien.Init(rows[r], r, c);
+                alien.Init(rowTypes[rowLayout[r]], r, c);
                 alien.Killed += OnAlienKilled;
                 aliens.Add(alien);
                 grid[r, c] = alien;
@@ -137,14 +167,13 @@ public class AlienFormation : MonoBehaviour
         // Every remaining alien is thrown: hold position until one comes home.
         if (!GetHorizontalExtents(out float minX, out float maxX)) return;
 
-        float halfView = cam.orthographicSize * cam.aspect - edgePadding;
-
-        bool hitEdge = (direction > 0 && maxX + stepX > cam.transform.position.x + halfView)
-                    || (direction < 0 && minX - stepX < cam.transform.position.x - halfView);
+        GetLaneBounds(out float laneMin, out float laneMax);
+        bool hitEdge = (direction > 0 && maxX + stepX > laneMax)
+                    || (direction < 0 && minX - stepX < laneMin);
 
         if (hitEdge)
         {
-            transform.position += Vector3.down * stepDown;
+            if (CanDrop()) transform.position += Vector3.down * stepDown;
             direction = -direction;
         }
         else
@@ -155,7 +184,26 @@ public class AlienFormation : MonoBehaviour
         foreach (Alien alien in aliens)
             alien.AdvanceFrame();
 
-        Stepped?.Invoke();
+        Stepped?.Invoke(this);
+    }
+
+    /// <summary>Back formations hold above the front one until it's cleared.</summary>
+    private bool CanDrop()
+    {
+        if (holdAbove == null || holdAbove.AliveCount == 0) return true; // destroyed or empty
+        return LowestY - stepDown >= holdAbove.HighestY + holdGap;
+    }
+
+    private void GetLaneBounds(out float min, out float max)
+    {
+        float center = cam.transform.position.x;
+        float half = cam.orthographicSize * cam.aspect - edgePadding;
+        switch (lane)
+        {
+            case Lane.LeftHalf:  min = center - half;       max = center - midpointGap; break;
+            case Lane.RightHalf: min = center + midpointGap; max = center + half;      break;
+            default:             min = center - half;       max = center + half;      break;
+        }
     }
 
     /// <summary>
@@ -221,6 +269,6 @@ public class AlienFormation : MonoBehaviour
         alien.Killed -= OnAlienKilled;
         aliens.Remove(alien);
         grid[alien.Row, alien.Column] = null;
-        if (aliens.Count == 0) Cleared?.Invoke();
+        if (aliens.Count == 0) Cleared?.Invoke(this);
     }
 }

@@ -17,9 +17,9 @@ using UnityEngine.UI;
 [DefaultExecutionOrder(-100)] // freeze gameplay before anything else starts
 public class GameManager : MonoBehaviour
 {
-    private enum State { Title, Playing, GameOver, Won }
+    private enum State { Title, Playing, BetweenWaves, GameOver, Won }
 
-    [SerializeField] private AlienFormation formation;
+    [SerializeField] private WaveManager waveManager;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private SpriteRenderer playerSprite;
     [Tooltip("Gameplay scripts that only run while Playing.")]
@@ -41,6 +41,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Color loseColor = new Color32(0xf8, 0x51, 0x49, 0xff);
     [Tooltip("Seconds per character for the start screen's typing effect.")]
     [SerializeField] private float typeDelay = 0.02f;
+    [Tooltip("Seconds the between-waves terminal stays up.")]
+    [SerializeField] private float betweenWavesTime = 2f;
 
     private State state = State.Title;
     private Coroutine typing;
@@ -58,19 +60,22 @@ public class GameManager : MonoBehaviour
         }
         heldItem.enabled = false;
         SetGameplayRunning(false);
+        waveManager.StartWave(0); // spawned paused, visible behind the start screen
     }
 
     private void OnEnable()
     {
-        formation.Stepped += CheckInvasion;
-        formation.Cleared += OnFormationCleared;
+        waveManager.Stepped += CheckInvasion;
+        waveManager.WaveCleared += OnWaveCleared;
+        waveManager.AllWavesCleared += OnAllWavesCleared;
         playerHealth.Died += OnPlayerDied;
     }
 
     private void OnDisable()
     {
-        formation.Stepped -= CheckInvasion;
-        formation.Cleared -= OnFormationCleared;
+        waveManager.Stepped -= CheckInvasion;
+        waveManager.WaveCleared -= OnWaveCleared;
+        waveManager.AllWavesCleared -= OnAllWavesCleared;
         playerHealth.Died -= OnPlayerDied;
     }
 
@@ -80,7 +85,7 @@ public class GameManager : MonoBehaviour
             "$ ./stack-invaders\n" +
             "Compiling...\n" +
             "  [####################] 100%\n" +
-            $"Build succeeded with {formation.AliveCount} warnings (bugs)\n\n";
+            $"Build succeeded with {waveManager.TotalBugs} warnings (bugs) in {waveManager.WaveCount} waves\n\n";
         ShowScreen("", titleColor);
         typing = StartCoroutine(TypeOut(fullTitleText));
     }
@@ -127,9 +132,10 @@ public class GameManager : MonoBehaviour
 
     private void CheckInvasion()
     {
-        if (state != State.Playing || formation.AliveCount == 0) return;
+        if (state != State.Playing) return;
 
-        if (formation.LowestY <= playerSprite.bounds.max.y)
+        // Any formation reaching the developer ends the game (LowestY covers all of them).
+        if (waveManager.LowestY <= playerSprite.bounds.max.y)
         {
             GameOver(
                 "Unhandled exception: BugsInProductionException",
@@ -148,7 +154,34 @@ public class GameManager : MonoBehaviour
             "  at Program.Main() no try/catch left");
     }
 
-    private void OnFormationCleared()
+    private void OnWaveCleared(int cleared, int total)
+    {
+        if (state != State.Playing) return;
+
+        state = State.BetweenWaves;
+        SetGameplayRunning(false);
+        int next = cleared + 1;
+        waveManager.StartWave(next); // spawned paused behind the terminal
+        ShowScreen(
+            $"Wave {cleared + 1}/{total} passed\n\n" +
+            waveManager.Current.intro +
+            $"\n\nWave {next + 1}/{total} incoming...",
+            titleColor);
+        StartCoroutine(ResumeAfterBreak());
+    }
+
+    private IEnumerator ResumeAfterBreak()
+    {
+        yield return new WaitForSecondsRealtime(betweenWavesTime);
+        if (state != State.BetweenWaves) yield break;
+
+        state = State.Playing;
+        screenPanel.SetActive(false);
+        // Re-enabling the language scripts resets per-wave state (JIT heat, GC timer).
+        SetGameplayRunning(true);
+    }
+
+    private void OnAllWavesCleared()
     {
         if (state != State.Playing) return;
 
@@ -156,9 +189,10 @@ public class GameManager : MonoBehaviour
         SetGameplayRunning(false);
         ShowScreen(
             "BUILD PASSING\n\n" +
-            "All tests passed: every bug fixed\n" +
+            $"All tests passed: {waveManager.WaveCount}/{waveManager.WaveCount} waves of bugs fixed\n" +
             $"Unhandled exceptions remaining: {playerHealth.Hearts}/{playerHealth.MaxHearts}\n\n" +
-            "Process exited with code 0\n\n" +
+            "Process exited with code 0\n" +
+            "(miniboss coming soon)\n\n" +
             "> press R to run again",
             winColor);
     }
@@ -184,6 +218,7 @@ public class GameManager : MonoBehaviour
         Time.timeScale = running ? 1f : 0f;
         foreach (MonoBehaviour behaviour in gameplayBehaviours)
             behaviour.enabled = running;
+        waveManager.SetRunning(running);
         if (language != null)
             foreach (MonoBehaviour behaviour in language.behaviours)
                 behaviour.enabled = running;

@@ -1,0 +1,126 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2498206180900821520
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5864242708075412347}
+  - component: {fileID: 4222884840881777146}
+  - component: {fileID: 5391317053054922185}
+  - component: {fileID: 8482130064586170159}
+  m_Layer: 0
+  m_Name: Formation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5864242708075412347
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2498206180900821520}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4222884840881777146
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2498206180900821520}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4685b334ca1da41e795b701f10abcafb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AlienFormation
+  alienPrefab: {fileID: 3206615621531209392, guid: 926cb46056ecf4658a63b88f03d379fd, type: 3}
+  rowTypes:
+  - frameA: {fileID: 21300000, guid: cfa820a15b4c4446cb354eed91dcb22e, type: 3}
+    frameB: {fileID: 21300000, guid: 86f7ecebb904a421290f63b000605c13, type: 3}
+    flashA: {fileID: 21300000, guid: 2f0ce7ebe04df4986b8f8b0600a47636, type: 3}
+    flashB: {fileID: 21300000, guid: 9e8dbb7c7c76443dea4da45086a62c47, type: 3}
+    color: {r: 0.7372549, g: 0.54901963, b: 1, a: 1}
+    points: 30
+  - frameA: {fileID: 21300000, guid: 8f1501ae2e1f8439ba05c63e83c0bbc5, type: 3}
+    frameB: {fileID: 21300000, guid: bb445cf27f174407a9b166137b5ad04b, type: 3}
+    flashA: {fileID: 21300000, guid: a22a8c3bfddf34469bfaa242202b9aab, type: 3}
+    flashB: {fileID: 21300000, guid: 5b600b092149940da8fdfebebd336570, type: 3}
+    color: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
+    points: 20
+  - frameA: {fileID: 21300000, guid: 4f8820a0684544294bf03cff624fa5b9, type: 3}
+    frameB: {fileID: 21300000, guid: dcf28a2ec461e4997a02be1ae0099536, type: 3}
+    flashA: {fileID: 21300000, guid: 813c2a0ca971d4c49bb38c3d4cc0522c, type: 3}
+    flashB: {fileID: 21300000, guid: c0429de9579cd41b1b8349637cffd402, type: 3}
+    color: {r: 0.8235294, g: 0.6, b: 0.13333334, a: 1}
+    points: 10
+  spacing: {x: 1, y: 0.75}
+  stepX: 0.25
+  stepDown: 0.5
+  slowestStepInterval: 0.45
+  fastestStepInterval: 0.04
+  edgePadding: 0.25
+  midpointGap: 0.125
+  holdGap: 0.75
+--- !u!50 &5391317053054922185
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2498206180900821520}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
+--- !u!114 &8482130064586170159
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2498206180900821520}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fe47a5c1c8a0f4a6fba4d6fbe89febc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FleetThrower
+  formation: {fileID: 4222884840881777146}
+  player: {fileID: 0}
+  bitPrefab: {fileID: 2270727926921080845, guid: dfc2dfcb5354b454b997bfad7538a3be, type: 3}
+  zeroSprite: {fileID: 21300000, guid: 2d1b177a9c5134fa8a5b5c4226e1ae79, type: 3}
+  oneSprite: {fileID: 21300000, guid: 6912cd62b1a6b4d24a09e751918aabd4, type: 3}
+  firstThrowDelay: 3
+  fullFleetInterval: {x: 1.5, y: 2.5}
+  lastBugInterval: {x: 0.5, y: 1}
+  telegraphTime: 0.5
+  spreadAngle: 35
+  bitSeparation: 0.2
