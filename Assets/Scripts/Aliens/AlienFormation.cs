@@ -83,8 +83,7 @@ public class AlienFormation : MonoBehaviour
             for (int c = 0; c < columns; c++)
             {
                 Vector3 localPos = new Vector3(c * spacing.x - width / 2f, -r * spacing.y, 0f);
-                Alien alien = Instantiate(alienPrefab, transform);
-                alien.transform.localPosition = localPos;
+                Alien alien = Instantiate(alienPrefab, transform.TransformPoint(localPos), Quaternion.identity, transform);
                 alien.name = $"Bug_{r}_{c}";
                 alien.Init(rows[r].frameA, rows[r].frameB, rows[r].points);
                 alien.Killed += OnAlienKilled;
