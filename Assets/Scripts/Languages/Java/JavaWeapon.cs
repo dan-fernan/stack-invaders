@@ -51,10 +51,15 @@ public class JavaWeapon : MonoBehaviour
         Keyboard kb = Keyboard.current;
         bool firing = kb != null && kb.spaceKey.isPressed;
 
-        if (firing && Time.time >= nextThrowTime)
-            Throw();
+        if (firing)
+        {
+            // Holding fire keeps the JIT warm, even while waiting out a slow cold throw.
+            if (Time.time >= nextThrowTime) Throw();
+        }
         else if (Time.time - lastThrowTime > coolDelay)
+        {
             Heat = Mathf.Max(0f, Heat - coolRate * Time.deltaTime);
+        }
 
         PublishHeat(force: false);
     }
