@@ -84,10 +84,8 @@ public class AlienFormation : MonoBehaviour
         // Kinematic body: the alien colliders become one compound body that we move
         // by hand, rather than static colliders being teleported every step.
         GetComponent<Rigidbody2D>().bodyType = RigidbodyType2D.Kinematic;
-    }
-
-    private void Start()
-    {
+        // Spawn in Awake (which runs even while this component is disabled) so the
+        // formation is visible behind the start screen before the game begins.
         Spawn();
     }
 

@@ -18,8 +18,9 @@ instructor's code and documenting how this project handles each one instead (see
 | Key | Action |
 | --- | --- |
 | A / D (or ← / →) | Move |
+| Space | Start the game from the start screen (the first press skips the typing) |
 | Space (hold) | Shoot |
-| R | Restart after game over |
+| R | Restart after a win or game over |
 
 ## Required features
 
@@ -36,7 +37,7 @@ instructor's code and documenting how this project handles each one instead (see
 | --- | --- | --- |
 | Better graphics for aliens and ship | ✅ | Original pixel art: a ship, three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
 | Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). The fleet's bit attack (below) removes one heart per hit, followed by 1 s of invulnerability while the ship blinks. Running out of hearts ends the game. |
-| Start and ending screens | 🚧 In progress | The game-over screen is done: a terminal-style stack trace naming the cause of death (`OutOfHeartsException`, `BugsInProductionException`). The start screen and win screen are still to do. |
+| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 55 warnings (bugs)`; Space skips the typing, then starts the game. **Win:** `BUILD PASSING … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
 | _TBD_ | ⬜ | |
 
 ### Fleet attack: bugs thrown as bits

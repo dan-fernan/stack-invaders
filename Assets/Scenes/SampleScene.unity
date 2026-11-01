@@ -469,13 +469,17 @@ MonoBehaviour:
   formation: {fileID: 1757396454}
   playerHealth: {fileID: 982252450}
   playerSprite: {fileID: 982252447}
-  disableOnGameOver:
+  gameplayBehaviours:
   - {fileID: 982252446}
   - {fileID: 982252449}
   - {fileID: 1757396454}
   - {fileID: 1757396457}
-  gameOverPanel: {fileID: 1946274185}
-  gameOverText: {fileID: 1602231718}
+  screenPanel: {fileID: 1946274185}
+  screenText: {fileID: 1602231718}
+  titleColor: {r: 0.22352941, g: 0.827451, b: 0.3254902, a: 1}
+  winColor: {r: 0.22352941, g: 0.827451, b: 0.3254902, a: 1}
+  loseColor: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
+  typeDelay: 0.02
 --- !u!4 &802972345
 Transform:
   m_ObjectHideFlags: 0
@@ -802,7 +806,7 @@ GameObject:
   - component: {fileID: 1602231719}
   - component: {fileID: 1602231718}
   m_Layer: 0
-  m_Name: StackTrace
+  m_Name: TerminalText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1016,7 +1020,7 @@ GameObject:
   - component: {fileID: 1946274188}
   - component: {fileID: 1946274187}
   m_Layer: 0
-  m_Name: GameOverPanel
+  m_Name: TerminalScreen
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
