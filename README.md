@@ -38,7 +38,7 @@ instructor's code and documenting how this project handles each one instead (see
 | Better graphics for aliens and ship | ✅ | Original pixel art: a ship, three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
 | Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). The fleet's bit attack (below) removes one heart per hit, followed by 1 s of invulnerability while the ship blinks. Running out of hearts ends the game. |
 | Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 55 warnings (bugs)`; Space skips the typing, then starts the game. **Win:** `BUILD PASSING … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
-| _TBD_ | ⬜ | |
+| Animations when collisions occur | ✅ | Pixel-art flipbook effects (`OneShotAnimation`), tinted to the color of whatever was hit. **Bug shot:** the bug flattens, bursts into a splat, then scatters into pixels (`BugSquash`). **Bit shot, or bit hits the ship:** a small pixel burst (`BitPop`). **Ship hit:** a 0.2 s camera shake in whole game pixels, so the image stays on the pixel grid (`CameraShake`), plus the invulnerability blink. **Bug rebuilt:** a pop in the bug's color when its bit returns. |
 
 ### Fleet attack: bugs thrown as bits
 
@@ -202,8 +202,9 @@ Assets/
     Player/                   PlayerController (move + clamp), PlayerShooter, Bullet, PlayerHealth
     Aliens/                   AlienFormation (spawn, march, speed-up), Alien, FleetThrower, BitProjectile
     UI/                       HeartsDisplay
+    Effects/                  OneShotAnimation (pixel flipbooks), CameraShake
     IShootable.cs             anything player bullets can destroy
-  Prefabs/                    Alien, Bullet, Bit
+  Prefabs/                    Alien, Bullet, Bit, Effects/ (BugSquash, BitPop)
   Art/Sprites/                pixel-art sprites (16 PPU, point filtered)
   Art/Fonts/                  VT323 font + license
 ```

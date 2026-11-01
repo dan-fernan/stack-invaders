@@ -22,6 +22,8 @@ public class PlayerHealth : MonoBehaviour
 
     /// <summary>(current, max)</summary>
     public event Action<int, int> Changed;
+    /// <summary>A hit landed (fires before Died on the final hit).</summary>
+    public event Action Hit;
     public event Action Died;
 
     private SpriteRenderer spriteRenderer;
@@ -44,6 +46,7 @@ public class PlayerHealth : MonoBehaviour
 
         Hearts--;
         Changed?.Invoke(Hearts, maxHearts);
+        Hit?.Invoke();
 
         if (IsDead)
             Died?.Invoke();

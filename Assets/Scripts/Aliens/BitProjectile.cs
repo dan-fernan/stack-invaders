@@ -23,6 +23,8 @@ public class BitProjectile : MonoBehaviour, IShootable
     [SerializeField] private float homingCutoff = 0.5f;
     [SerializeField] private float returnSpeed = 7f;
     [SerializeField] private float offscreenMargin = 0.5f;
+    [Tooltip("Played when the bit is shot or hits the ship.")]
+    [SerializeField] private OneShotAnimation popEffect;
 
     public event Action<BitProjectile, Outcome> Resolved;
 
@@ -119,6 +121,8 @@ public class BitProjectile : MonoBehaviour, IShootable
     {
         if (resolved) return;
         resolved = true;
+        if (outcome != Outcome.Returned)
+            popEffect.Spawn(transform.position, GetComponent<SpriteRenderer>().color);
         Resolved?.Invoke(this, outcome);
         Destroy(gameObject);
     }

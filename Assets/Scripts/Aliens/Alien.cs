@@ -28,6 +28,12 @@ public class Alien : MonoBehaviour, IShootable
     /// <summary>Raised when this alien is destroyed, so the formation can react.</summary>
     public event Action<Alien> Killed;
 
+    [Header("Effects")]
+    [Tooltip("Played where the bug is shot.")]
+    [SerializeField] private OneShotAnimation squashEffect;
+    [Tooltip("Played when the bug reassembles from its returning bits.")]
+    [SerializeField] private OneShotAnimation rebuildEffect;
+
     private const float WobblePixel = 1f / 16f;
 
     private SpriteRenderer spriteRenderer;
@@ -69,6 +75,8 @@ public class Alien : MonoBehaviour, IShootable
     {
         if (IsDead) return; // two bullets can hit in the same frame
         IsDead = true;
+        // A thrown bug dies off-screen (its bits already popped), so only squash it in the formation.
+        if (!IsAway) squashEffect.Spawn(transform.position, Color);
         Killed?.Invoke(this);
         Destroy(gameObject);
     }
@@ -79,9 +87,11 @@ public class Alien : MonoBehaviour, IShootable
         StopAllCoroutines();
         flashing = false;
         transform.localPosition = slotLocalPosition;
+        bool rebuilding = IsAway && !away;
         IsAway = away;
         gameObject.SetActive(!away);
         if (!away) RefreshSprite();
+        if (rebuilding) rebuildEffect.Spawn(transform.position, Color);
     }
 
     /// <summary>Telegraph for the neighbor doing the throwing: blink white.</summary>

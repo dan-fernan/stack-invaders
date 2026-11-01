@@ -185,3 +185,4 @@ MonoBehaviour:
   homingCutoff: 0.5
   returnSpeed: 7
   offscreenMargin: 0.5
+  popEffect: {fileID: 6178787030115165103, guid: 926cb54ec6543413f99435354ca3a7b1, type: 3}

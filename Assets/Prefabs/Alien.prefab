@@ -152,3 +152,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 570ec15cc876a4c5cbcac8d6a61b47da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Alien
+  squashEffect: {fileID: 527611924584414933, guid: 55ddc8b92a8fd462584c4f34fc37a071, type: 3}
+  rebuildEffect: {fileID: 6178787030115165103, guid: 926cb54ec6543413f99435354ca3a7b1, type: 3}
