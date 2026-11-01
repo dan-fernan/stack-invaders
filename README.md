@@ -39,9 +39,9 @@ instructor's code and documenting how this project handles each one instead (see
 | --- | --- | --- |
 | Better graphics for aliens and ship | ✅ | Original pixel art: a developer character who holds their language's weapon (a steaming coffee mug for Java), three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
 | Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). The fleet's bit attack (below) removes one heart per hit, followed by 1 s of invulnerability while the ship blinks. Running out of hearts ends the game. |
-| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 175 warnings (bugs) in 3 waves`; Space skips the typing, then a language select menu appears (W/S or 1–3 to choose, Space to run). **Between waves:** a 2 s terminal break (`$ git pull origin feature/more-bugs …`). **Win** (after wave 3): `BUILD PASSING … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
+| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 175 warnings (bugs) in 3 waves`; Space skips the typing, then a language select menu appears (W/S or 1–3 to choose, Space to run). **Between waves:** a 2 s terminal break (`$ git pull origin feature/more-bugs …`). **Win** (after the miniboss): `BUILD PASSING … recurse(3) returned: call stack unwound … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
 | Animations when collisions occur | ✅ | Pixel-art flipbook effects (`OneShotAnimation`), tinted to the color of whatever was hit. **Bug shot:** the bug flattens, bursts into a splat, then scatters into pixels (`BugSquash`). **Bit shot, or bit hits the ship:** a small pixel burst (`BitPop`). **Ship hit:** a 0.2 s camera shake in whole game pixels, so the image stays on the pixel grid (`CameraShake`), plus the invulnerability blink. **Bug rebuilt:** a pop in the bug's color when its bit returns. |
-| Additional levels | ✅ | Three waves, each different from the last (`WaveManager`, configured in the Inspector). **Wave 1:** the classic 5×11 formation sweeping the full width. **Wave 2:** two 4×6 formations, back-left and back-right, each bouncing between its screen edge and the midpoint, so they drop about twice as often. **Wave 3:** a 4×9 middle formation in front, with 3×6 back-left and back-right formations behind it. The back formations won't drop onto the middle one until it's cleared, so the player chooses which wave to thin out. Every formation has its own throw manager and speed-up. Hearts carry over between waves; JIT heat and the GC timer reset. A miniboss after wave 3 is planned. |
+| Additional levels | ✅ | Three waves, each different from the last (`WaveManager`, configured in the Inspector). **Wave 1:** the classic 5×11 formation sweeping the full width. **Wave 2:** two 4×6 formations, back-left and back-right, each bouncing between its screen edge and the midpoint, so they drop about twice as often. **Wave 3:** a 4×9 middle formation in front, with 3×6 back-left and back-right formations behind it. The back formations won't drop onto the middle one until it's cleared, so the player chooses which wave to thin out. Every formation has its own throw manager and speed-up. Hearts carry over between waves; JIT heat and the GC timer reset. After wave 3 comes the recursion miniboss (see below). |
 
 ### Fleet attack: bugs thrown as bits
 
@@ -70,10 +70,11 @@ bullets hit anything that implements `IShootable`, so they handle bugs and bits 
 Every language gets the same native parry: the developer sets a breakpoint.
 
 1. **Shift** opens a 0.2 s window, and a red ● breakpoint dot appears beside the developer.
-2. Any bit within 0.9 units, or touching the developer, during the window is **paused**: the
+2. Any enemy projectile (fleet bit or boss split shot) within 0.9 units, or touching the developer, during the window is **paused**: the
    game freezes for 0.06 s and `● paused: 0` pops up.
 3. **Step Into:** the caught bit turns developer-green, flies back to its slot and **patches**
    the bug it came from, which is squashed in its slot. A patched bit can't hurt you or be shot.
+   A parried boss split shot flies back up and damages the first boss frame it touches.
 4. A successful window has no cooldown, so you can catch the 0 and then the 1. A window that
    catches nothing detaches the debugger for 1 s, shown by a gray dot.
 
@@ -81,6 +82,28 @@ This rewards timing over constant movement, and turns the fleet's attack into of
 making any weapon stronger. Implementation: `BreakpointParry`, `BitProjectile.StepInto()`,
 `Alien.Patch()`, and the pop-up text in `FloatingText`. The spec's *Breakpoint* powerup (freeze
 all enemies) will need a new name.
+
+### Miniboss: recursion
+
+After wave 3, the boss `recurse(3)` appears. It's built around how recursion works:
+
+- **It calls itself.** Every 1.6 s, the root or one of its clones makes a recursive call,
+  spawning a child one level deeper: `recurse(2)`, `recurse(1)`, down to the base case
+  `recurse(0)`, shown in a different color, which can't call further. Each frame shows its
+  argument as a number on its body. A frame's first call always lands directly below it, so a
+  column of clones shields the root; other calls branch outward.
+- **Unwinding.** Clones have 1 HP and block player shots. Destroying any frame unwinds its whole
+  subtree, one depth level at a time. The root has 12 HP; destroying it unwinds the entire call
+  stack and wins the fight. Cut a branch to open a lane, then hit the root.
+- **Stack overflow.** If the tree grows past 12 frames, the boss throws `StackOverflowError`: it
+  freezes and flashes for 4 s (the HUD shows the error), then its deep frames unwind.
+- **Recursive split shot.** A frame fires a shot that splits in two every 0.45 s, as many times
+  as its argument, so the root's shots go 1 → 2 → 4 → 8 while base cases fire single shots.
+  Shooting a shot before it splits removes its future children. The boss fires faster as the
+  root loses health.
+
+Implementation: `RecursionBoss` (calling, unwinding, overflow, firing), `BossFrame` (one call
+frame), `SplitShot`, and `BossHud` (`recurse(3)  [########----]`).
 
 ## Languages (weapon select)
 
@@ -239,14 +262,15 @@ Assets/
     GameManager.cs            win/lose rules, game-over screen, restart
     Player/                   PlayerController (move + clamp), PlayerHealth, BreakpointParry,
                               PlayerShooter + Bullet (generic blaster, not in the scene; base for Python)
+    Boss/                     RecursionBoss, BossFrame, SplitShot
     Languages/                LanguageSelect, LanguageOption
       Java/                   JavaWeapon (coffee throw + JIT), CoffeeCup, GarbageCollector
     Aliens/                   WaveManager (waves of formations), AlienFormation (layout, lane, march, speed-up),
                               Alien, FleetThrower, BitProjectile
-    UI/                       HeartsDisplay, JavaHud, WaveHud, FloatingText
+    UI/                       HeartsDisplay, JavaHud, WaveHud, BossHud, FloatingText
     Effects/                  OneShotAnimation (pixel flipbooks), CameraShake
     IShootable.cs             anything player bullets can destroy
-  Prefabs/                    Formation, Alien, Bullet, Bit, Languages/ (CoffeeCup), Effects/ (BugSquash, BitPop, CoffeeSplash)
+  Prefabs/                    Formation, Boss/ (RecursionBoss, BossFrame, SplitShot), Alien, Bullet, Bit, Languages/ (CoffeeCup), Effects/ (BugSquash, BitPop, CoffeeSplash)
   Art/Sprites/                pixel-art sprites (16 PPU, point filtered)
   Art/Fonts/                  VT323 font + license
 ```

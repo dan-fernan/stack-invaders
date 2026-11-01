@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// The developer's native parry: set a breakpoint (Shift) and any bit that reaches
-/// you during the short window is paused, then "stepped into": it flies back to its
-/// slot and patches (kills) the bug it came from.
+/// The developer's native parry: set a breakpoint (Shift) and any enemy projectile
+/// (IParryable) that reaches you during the short window is paused, then "stepped into":
+/// a fleet bit flies back and patches (kills) its bug; a boss shot flies back and hits a frame.
 /// A successful parry has no cooldown, so the 0 and the 1 can both be caught;
 /// a whiffed one detaches the debugger for a moment.
 /// </summary>
@@ -15,7 +15,7 @@ public class BreakpointParry : MonoBehaviour
     [SerializeField] private float window = 0.2f;
     [Tooltip("Seconds before you can parry again after a window that caught nothing.")]
     [SerializeField] private float missCooldown = 1f;
-    [Tooltip("Bits within this distance of the developer are caught while the breakpoint is set.")]
+    [Tooltip("Projectiles within this distance of the developer are caught while the breakpoint is set.")]
     [SerializeField] private float catchRadius = 0.9f;
     [Tooltip("Real-time freeze on a catch, to sell the 'paused' moment.")]
     [SerializeField] private float hitStop = 0.06f;
@@ -34,8 +34,8 @@ public class BreakpointParry : MonoBehaviour
     private int catches;
     private Camera cam;
 
-    // Copy of the active set, since catching a bit changes its state.
-    private readonly List<BitProjectile> candidates = new List<BitProjectile>();
+    // Copy of the active set, since catching a projectile changes its state.
+    private readonly List<IParryable> candidates = new List<IParryable>();
 
     private void Awake() => cam = Camera.main;
 
@@ -61,11 +61,11 @@ public class BreakpointParry : MonoBehaviour
         UpdateMarker();
     }
 
-    /// <summary>Called by a bit that touches the developer; true if the breakpoint caught it.</summary>
-    public bool TryCatch(BitProjectile bit)
+    /// <summary>Called by a projectile that touches the developer; true if the breakpoint caught it.</summary>
+    public bool TryCatch(IParryable projectile)
     {
         if (!windowOpen) return false;
-        return Catch(bit);
+        return Catch(projectile);
     }
 
     private void Open()
@@ -84,21 +84,22 @@ public class BreakpointParry : MonoBehaviour
     private void CatchNearby()
     {
         candidates.Clear();
-        candidates.AddRange(BitProjectile.Active);
+        candidates.AddRange(Parryables.Active);
         Vector2 center = transform.position;
-        foreach (BitProjectile bit in candidates)
+        foreach (IParryable projectile in candidates)
         {
-            if (bit.IsDangerous && Vector2.Distance(bit.transform.position, center) <= catchRadius)
-                Catch(bit);
+            if (projectile.IsDangerous && Vector2.Distance(projectile.Position, center) <= catchRadius)
+                Catch(projectile);
         }
     }
 
-    private bool Catch(BitProjectile bit)
+    private bool Catch(IParryable projectile)
     {
-        if (!bit.StepInto()) return false;
+        Vector3 at = projectile.Position;
+        if (!projectile.StepInto()) return false;
         catches++;
         if (popupPrefab != null)
-            popupPrefab.Spawn(popupCanvas, cam, bit.transform.position, $"● paused: {bit.Value}", armedColor);
+            popupPrefab.Spawn(popupCanvas, cam, at, $"● paused: {projectile.ParryLabel}", armedColor);
         StartCoroutine(HitStop());
         return true;
     }

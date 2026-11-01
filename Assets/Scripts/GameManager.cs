@@ -20,6 +20,16 @@ public class GameManager : MonoBehaviour
     private enum State { Title, Playing, BetweenWaves, GameOver, Won }
 
     [SerializeField] private WaveManager waveManager;
+
+    [Header("Miniboss (after the last wave)")]
+    [SerializeField] private RecursionBoss bossPrefab;
+    [Tooltip("World position of the boss's root frame.")]
+    [SerializeField] private Vector2 bossPosition = new Vector2(0f, 4f);
+    [SerializeField] private BossHud bossHud;
+    [Tooltip("Hidden while the boss HUD is shown.")]
+    [SerializeField] private GameObject waveHud;
+    [TextArea]
+    [SerializeField] private string bossIntro = "$ ./recurse 3\nwarning: recursive call without a depth check";
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private SpriteRenderer playerSprite;
     [Tooltip("Gameplay scripts that only run while Playing.")]
@@ -48,6 +58,7 @@ public class GameManager : MonoBehaviour
     private Coroutine typing;
     private string fullTitleText;
     private LanguageOption language;
+    private RecursionBoss boss;
 
     private void Awake()
     {
@@ -59,6 +70,7 @@ public class GameManager : MonoBehaviour
             if (option.hud != null) option.hud.SetActive(false);
         }
         heldItem.enabled = false;
+        bossHud.gameObject.SetActive(false);
         SetGameplayRunning(false);
         waveManager.StartWave(0); // spawned paused, visible behind the start screen
     }
@@ -181,7 +193,30 @@ public class GameManager : MonoBehaviour
         SetGameplayRunning(true);
     }
 
+    /// <summary>All waves cleared: break, then the recursion miniboss.</summary>
     private void OnAllWavesCleared()
+    {
+        if (state != State.Playing) return;
+
+        state = State.BetweenWaves;
+        SetGameplayRunning(false);
+
+        boss = Instantiate(bossPrefab, bossPosition, Quaternion.identity);
+        boss.enabled = false; // paused behind the terminal
+        boss.Defeated += OnBossDefeated;
+        waveHud.SetActive(false);
+        bossHud.gameObject.SetActive(true);
+        bossHud.Bind(boss);
+
+        ShowScreen(
+            $"All {waveManager.WaveCount}/{waveManager.WaveCount} waves passed\n\n" +
+            bossIntro +
+            "\n\nMiniboss incoming...",
+            titleColor);
+        StartCoroutine(ResumeAfterBreak());
+    }
+
+    private void OnBossDefeated()
     {
         if (state != State.Playing) return;
 
@@ -189,10 +224,10 @@ public class GameManager : MonoBehaviour
         SetGameplayRunning(false);
         ShowScreen(
             "BUILD PASSING\n\n" +
-            $"All tests passed: {waveManager.WaveCount}/{waveManager.WaveCount} waves of bugs fixed\n" +
+            $"All tests passed: {waveManager.WaveCount} waves of bugs fixed\n" +
+            "recurse(3) returned: call stack unwound\n" +
             $"Unhandled exceptions remaining: {playerHealth.Hearts}/{playerHealth.MaxHearts}\n\n" +
-            "Process exited with code 0\n" +
-            "(miniboss coming soon)\n\n" +
+            "Process exited with code 0\n\n" +
             "> press R to run again",
             winColor);
     }
@@ -219,6 +254,7 @@ public class GameManager : MonoBehaviour
         foreach (MonoBehaviour behaviour in gameplayBehaviours)
             behaviour.enabled = running;
         waveManager.SetRunning(running);
+        if (boss != null) boss.enabled = running;
         if (language != null)
             foreach (MonoBehaviour behaviour in language.behaviours)
                 behaviour.enabled = running;

@@ -13,7 +13,7 @@ using UnityEngine;
 /// Reports exactly one Outcome, then destroys itself.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D), typeof(SpriteRenderer))]
-public class BitProjectile : MonoBehaviour, IShootable
+public class BitProjectile : MonoBehaviour, IShootable, IParryable
 {
     public enum Outcome { Returned, HitPlayer, Shot, Patched }
 
@@ -38,6 +38,9 @@ public class BitProjectile : MonoBehaviour, IShootable
     /// <summary>"0" or "1".</summary>
     public string Value { get; private set; }
 
+    public Vector3 Position => transform.position;
+    public string ParryLabel => Value;
+
     /// <summary>Still a threat to the player (not heading home, parried or resolved).</summary>
     public bool IsDangerous => !resolved && (state == State.Homing || state == State.Coasting);
 
@@ -59,8 +62,17 @@ public class BitProjectile : MonoBehaviour, IShootable
         cam = Camera.main;
     }
 
-    private void OnEnable() => active.Add(this);
-    private void OnDisable() => active.Remove(this);
+    private void OnEnable()
+    {
+        active.Add(this);
+        Parryables.Register(this);
+    }
+
+    private void OnDisable()
+    {
+        active.Remove(this);
+        Parryables.Unregister(this);
+    }
 
     /// <summary>
     /// Garbage-collected: pops and flies straight home from where it is, harmless.

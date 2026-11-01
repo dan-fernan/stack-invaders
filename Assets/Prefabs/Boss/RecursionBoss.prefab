@@ -1,0 +1,113 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8738044699509742763
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6719968848908349709}
+  - component: {fileID: 815442697929374485}
+  - component: {fileID: 8379754961676439072}
+  m_Layer: 0
+  m_Name: RecursionBoss
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6719968848908349709
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8738044699509742763}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!50 &815442697929374485
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8738044699509742763}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
+--- !u!114 &8379754961676439072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8738044699509742763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e30abcc8c3344338da8e3e0c480c2c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RecursionBoss
+  framePrefab: {fileID: 6293154713213997265, guid: f1b21e2d8ba684ffd8fd7fa38eaca4db, type: 3}
+  rootSprite: {fileID: 21300000, guid: 651047221bcc74ebf9fe7c349c2ac30f, type: 3}
+  cloneSprite: {fileID: 21300000, guid: c509d8eabb2a44e31975be7fc900090f, type: 3}
+  digits:
+  - {fileID: 21300000, guid: e194783352ca542dd9a9eb3e826b03bb, type: 3}
+  - {fileID: 21300000, guid: 0a2ec3d7b8f404188995c3d9597d96e4, type: 3}
+  - {fileID: 21300000, guid: 011f0d37096a74573bef807fe4db278c, type: 3}
+  - {fileID: 21300000, guid: 5a02a775c1ae7458fb6320ec6b41d626, type: 3}
+  - {fileID: 21300000, guid: d84c680eaeca342929b2dfa87523aa09, type: 3}
+  - {fileID: 21300000, guid: 051b7cf12cbc542a8a81c03ff657f1a6, type: 3}
+  - {fileID: 21300000, guid: 0d0f2d16c49c34865bff415057e0e077, type: 3}
+  - {fileID: 21300000, guid: d0be0c2cad3384475a7d66bd2b53b7c5, type: 3}
+  - {fileID: 21300000, guid: a282ffd22aaf04d05923f45808b7bbe4, type: 3}
+  - {fileID: 21300000, guid: 3c93cc416783248bbb9743cdb0642d91, type: 3}
+  rootColor: {r: 0.34509805, g: 0.6509804, b: 1, a: 1}
+  cloneColor: {r: 0.21960784, g: 0.54509807, b: 0.99215686, a: 1}
+  baseCaseColor: {r: 0.8901961, g: 0.7019608, b: 0.25490198, a: 1}
+  digitColor: {r: 0.050980393, g: 0.06666667, b: 0.09019608, a: 1}
+  unwindEffect: {fileID: 527611924584414933, guid: 55ddc8b92a8fd462584c4f34fc37a071, type: 3}
+  maxDepth: 3
+  rootHp: 12
+  cloneHp: 1
+  callInterval: 1.6
+  stackLimit: 12
+  overflowStunTime: 4
+  overflowUnwindDepth: 2
+  rowStep: 0.875
+  sideStep:
+  - 0
+  - 3
+  - 1.5
+  - 0.75
+  unwindStepTime: 0.08
+  shotPrefab: {fileID: 6905535689674915539, guid: e466a1a9b0a884d82956079b7b5dd35b, type: 3}
+  fireIntervalRange: {x: 1.5, y: 0.7}
+  rootFireChance: 0.35
+  driftAmplitude: 1.5
+  driftPeriod: 8
+  pixelsPerUnit: 16

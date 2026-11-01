@@ -1,0 +1,136 @@
+using UnityEngine;
+
+/// <summary>
+/// The recursion boss's attack: a projectile that calls itself. Fired by recurse(N),
+/// it splits into two children every splitDelay seconds, N times (1 -> 2 -> 4 -> 8 for
+/// N = 3). recurse(0) fires a shot that never splits.
+/// Shooting a shot before it splits removes its future children. Parrying sends it
+/// back up to damage the first boss frame it touches.
+/// </summary>
+[RequireComponent(typeof(Rigidbody2D), typeof(Collider2D), typeof(SpriteRenderer))]
+public class SplitShot : MonoBehaviour, IShootable, IParryable
+{
+    [SerializeField] private float speed = 4.5f;
+    [SerializeField] private float splitDelay = 0.45f;
+    [Tooltip("Each child turns this many degrees away from its parent's direction.")]
+    [SerializeField] private float splitAngle = 22f;
+    [SerializeField] private float returnSpeed = 12f;
+    [SerializeField] private Color parriedColor = new Color32(0x39, 0xd3, 0x53, 0xff);
+    [SerializeField] private OneShotAnimation popEffect;
+
+    private Rigidbody2D rb;
+    private SpriteRenderer sprite;
+    private Camera cam;
+    private BossFrame source;
+    private int splitsLeft;
+    private float age;
+    private bool parried;
+    private bool done;
+
+    public bool IsDangerous => !done && !parried;
+    public Vector3 Position => transform.position;
+    public string ParryLabel => source != null ? source.name : "return";
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        rb.bodyType = RigidbodyType2D.Kinematic;
+        sprite = GetComponent<SpriteRenderer>();
+        cam = Camera.main;
+    }
+
+    private void OnEnable() => Parryables.Register(this);
+    private void OnDisable() => Parryables.Unregister(this);
+
+    /// <param name="from">The frame that fired it (parried shots fly back toward it).</param>
+    public void Launch(BossFrame from, int splits, Vector2 direction, Color color)
+    {
+        source = from;
+        splitsLeft = splits;
+        sprite.color = color;
+        rb.linearVelocity = direction.normalized * speed;
+    }
+
+    private void Update()
+    {
+        if (done) return;
+        age += Time.deltaTime;
+
+        if (parried)
+        {
+            // Home on the frame that fired it; if that frame is gone, keep flying up.
+            if (source != null && !source.IsDead)
+                rb.linearVelocity = ((Vector2)(source.transform.position - transform.position)).normalized * returnSpeed;
+        }
+        else if (splitsLeft > 0 && age >= splitDelay)
+        {
+            Split();
+            return;
+        }
+
+        if (IsOffscreen()) Finish(false);
+    }
+
+    private void Split()
+    {
+        Vector2 v = rb.linearVelocity;
+        foreach (float angle in new[] { -splitAngle, splitAngle })
+        {
+            SplitShot child = Instantiate(this, transform.position, Quaternion.identity);
+            child.Launch(source, splitsLeft - 1, Quaternion.Euler(0f, 0f, angle) * v, sprite.color);
+        }
+        Finish(false);
+    }
+
+    public bool StepInto()
+    {
+        if (!IsDangerous) return false;
+        parried = true;
+        splitsLeft = 0;
+        sprite.color = parriedColor;
+        rb.linearVelocity = Vector2.up * returnSpeed;
+        return true;
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (done) return;
+
+        if (parried)
+        {
+            if (other.TryGetComponent(out BossFrame frame) && !frame.IsDead)
+            {
+                frame.TakeDamage(1);
+                Finish(true);
+            }
+            return;
+        }
+
+        if (other.TryGetComponent(out BreakpointParry parry) && parry.TryCatch(this)) return;
+        if (other.TryGetComponent(out PlayerHealth health) && health.TakeHit())
+            Finish(true);
+    }
+
+    /// <summary>Shot by the player before splitting: its future children never exist.</summary>
+    public void OnShot()
+    {
+        if (parried) return; // it's the developer's now
+        Finish(true);
+    }
+
+    private bool IsOffscreen()
+    {
+        Vector2 c = cam.transform.position;
+        Vector2 p = transform.position;
+        return Mathf.Abs(p.x - c.x) > cam.orthographicSize * cam.aspect + 1f
+            || Mathf.Abs(p.y - c.y) > cam.orthographicSize + 1f;
+    }
+
+    private void Finish(bool pop)
+    {
+        if (done) return;
+        done = true;
+        if (pop && popEffect != null) popEffect.Spawn(transform.position, sprite.color);
+        Destroy(gameObject);
+    }
+}
