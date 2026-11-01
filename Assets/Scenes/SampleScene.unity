@@ -492,6 +492,74 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1757396453
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1757396455}
+  - component: {fileID: 1757396454}
+  m_Layer: 0
+  m_Name: AlienFormation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1757396454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1757396453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4685b334ca1da41e795b701f10abcafb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AlienFormation
+  alienPrefab: {fileID: 3206615621531209392, guid: 926cb46056ecf4658a63b88f03d379fd, type: 3}
+  rows:
+  - frameA: {fileID: 21300000, guid: cfa820a15b4c4446cb354eed91dcb22e, type: 3}
+    frameB: {fileID: 21300000, guid: 86f7ecebb904a421290f63b000605c13, type: 3}
+    points: 30
+  - frameA: {fileID: 21300000, guid: 8f1501ae2e1f8439ba05c63e83c0bbc5, type: 3}
+    frameB: {fileID: 21300000, guid: bb445cf27f174407a9b166137b5ad04b, type: 3}
+    points: 20
+  - frameA: {fileID: 21300000, guid: 8f1501ae2e1f8439ba05c63e83c0bbc5, type: 3}
+    frameB: {fileID: 21300000, guid: bb445cf27f174407a9b166137b5ad04b, type: 3}
+    points: 20
+  - frameA: {fileID: 21300000, guid: 4f8820a0684544294bf03cff624fa5b9, type: 3}
+    frameB: {fileID: 21300000, guid: dcf28a2ec461e4997a02be1ae0099536, type: 3}
+    points: 10
+  - frameA: {fileID: 21300000, guid: 4f8820a0684544294bf03cff624fa5b9, type: 3}
+    frameB: {fileID: 21300000, guid: dcf28a2ec461e4997a02be1ae0099536, type: 3}
+    points: 10
+  columns: 11
+  spacing: {x: 1, y: 0.75}
+  stepX: 0.125
+  stepDown: 0.25
+  slowestStepInterval: 0.6
+  fastestStepInterval: 0.04
+  edgePadding: 0.25
+--- !u!4 &1757396455
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1757396453}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 4, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -499,3 +567,4 @@ SceneRoots:
   - {fileID: 519420032}
   - {fileID: 619394802}
   - {fileID: 982252448}
+  - {fileID: 1757396455}
