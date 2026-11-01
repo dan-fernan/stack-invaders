@@ -181,7 +181,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BitProjectile
   homingSpeed: 6
-  turnRate: 130
+  turnRate: 90
   homingCutoff: 0.5
   returnSpeed: 7
   offscreenMargin: 0.5

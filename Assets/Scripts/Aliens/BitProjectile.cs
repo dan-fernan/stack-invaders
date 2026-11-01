@@ -19,7 +19,7 @@ public class BitProjectile : MonoBehaviour, IShootable
 
     [SerializeField] private float homingSpeed = 6f;
     [Tooltip("Max degrees per second the bit can turn toward the player. Higher = harder to dodge.")]
-    [SerializeField] private float turnRate = 130f;
+    [SerializeField] private float turnRate = 90f;
     [Tooltip("Stops homing once the bit is this far above the player's position or lower.")]
     [SerializeField] private float homingCutoff = 0.5f;
     [SerializeField] private float returnSpeed = 7f;
