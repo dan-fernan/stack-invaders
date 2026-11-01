@@ -91,19 +91,22 @@ Between waves 2 and 3. A bug hides in one cell of a 16-cell sorted array, and ev
 - **Each shot is a comparison.** Hit a wrong cell and it shows `>` or `<`, pointing toward the
   bug. Every cell on the wrong side is **eliminated**: grayed out, and shots pass through it,
   just as a binary search discards half its range. Hit the bug's cell and it's **found**.
-- **Efficient searches hurt more.** The boss has 100 HP. A find deals 20 damage plus 8 for
+- **Efficient searches hurt more.** The boss has 160 HP. A find deals 15 damage plus 6 for
   every comparison left in the budget (6 per search; an optimal search of 16 cells needs at most
-  5). A 4-comparison find deals 36, a 6-comparison find only 20, and the HUD reports it
-  (`found in 4 cmp: -36`).
+  5). A 4-comparison find deals 27, a 6-comparison find only 15, and the HUD reports it
+  (`found in 4 cmp: -27`).
 - **The search space is your space.** Gray "discarded memory" walls close in from the sides under
   the eliminated cells, pushing the developer toward the live part of the array, always leaving at
   least 3 units of room. They open again on a re-sort.
 - **Off-by-one.** Every probe makes the probed cell's two neighbors fire, so each comparison has a
   price.
-- **Unsorted input (30% HP and below).** Binary search only works on sorted data, so the boss
-  "corrupts its sort": one of the first two hints per search **lies**. It shows the wrong arrow,
-  flickers faintly, and eliminates nothing. The cells you probe next still tell the truth and point
-  you back. Unsorted searches get 1 extra comparison, and the HUD warns `(unsorted!)`.
+- **`IndexOutOfBounds` cannons.** Red `!` boxes sit just outside the array, at `arr[-1]` and
+  `arr[16]`. They take turns flashing, then firing a shot aimed at the developer from the edge:
+  every 4 s at full health, down to every 1.5 s near death. They can't be shot.
+- **Linear-search taunt.** Probing the cell right next to your previous probe while 3 or more cells
+  are still in range is something a binary search never does. The HUD flashes `O(n)!` and the
+  array fires twice as fast until the next re-sort. With only 2 cells left, probing the neighbor is
+  correct and isn't punished.
 - **Re-sort.** Running out of comparisons, or making a find, re-sorts the array: the bug moves and
   the hints clear. Running out also makes every live cell fire at once. Live cells drop shots
   meanwhile, faster as the boss weakens. A parried shot flies back up and probes the cell it hits.

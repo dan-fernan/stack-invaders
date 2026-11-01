@@ -13,8 +13,11 @@ using UnityEngine;
 ///   - The search space is your space: walls close in under the eliminated cells,
 ///     confining the developer to the area under the live range until the re-sort.
 ///   - Off-by-one: every probe makes the probed cell's two neighbors fire.
-///   - Unsorted input (low HP): binary search needs sorted data, so one hint per search
-///     lies (wrong arrow, faint flicker, eliminates nothing).
+///   - IndexOutOfBounds: cannons at arr[-1] and arr[n] fire aimed shots in from the edges,
+///     faster as the boss weakens.
+///   - Linear-search taunt: probing right next to your last probe while 3+ cells are still
+///     in range (something a binary search never does) flashes O(n)! and doubles the
+///     array's fire rate until the next re-sort.
 ///   - Running out of comparisons re-sorts the array (the bug moves, hints clear, walls
 ///     open) and every live cell fires at once. Live cells also drop shots meanwhile.
 /// </summary>
@@ -24,7 +27,7 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     [SerializeField] private SearchCell cellPrefab;
     [SerializeField] private int cellCount = 16;
     [Tooltip("Distance between cell centers (wide enough that a coffee splash probes one cell).")]
-    [SerializeField] private float spacing = 1.1875f;
+    [SerializeField] private float spacing = 1.125f;
     [SerializeField] private Sprite unknownGlyph;
     [SerializeField] private Sprite lessGlyph;
     [SerializeField] private Sprite greaterGlyph;
@@ -35,10 +38,10 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     [SerializeField] private Color foundColor = new Color32(0xf8, 0x51, 0x49, 0xff);
 
     [Header("Health")]
-    [SerializeField] private int maxHp = 100;
-    [SerializeField] private int baseFindDamage = 20;
+    [SerializeField] private int maxHp = 160;
+    [SerializeField] private int baseFindDamage = 15;
     [Tooltip("Extra damage per comparison left unused when the bug is found.")]
-    [SerializeField] private int damagePerSavedComparison = 8;
+    [SerializeField] private int damagePerSavedComparison = 6;
 
     [Header("Search")]
     [Tooltip("Comparisons allowed per search (an optimal search of 16 cells needs at most 5).")]
@@ -48,11 +51,19 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     [SerializeField] private float resortTime = 1.2f;
     [SerializeField] private OneShotAnimation popEffect;
 
-    [Header("Unsorted input")]
-    [Tooltip("At or below this HP fraction, one hint per search lies.")]
-    [Range(0f, 1f)] [SerializeField] private float unsortedHpFraction = 0.3f;
-    [Tooltip("Extra comparisons allowed per search while the input is unsorted.")]
-    [SerializeField] private int unsortedExtraComparisons = 1;
+    [Header("IndexOutOfBounds cannons")]
+    [Tooltip("Placed at arr[-1] and arr[n]; not shootable.")]
+    [SerializeField] private SpriteRenderer cannonPrefab;
+    [Tooltip("Seconds between cannon shots at full HP / near death (the cannons alternate).")]
+    [SerializeField] private Vector2 cannonIntervalRange = new Vector2(4f, 1.5f);
+    [SerializeField] private float cannonTelegraphTime = 0.35f;
+    [SerializeField] private Color cannonColor = new Color32(0xf8, 0x51, 0x49, 0xff);
+
+    [Header("Linear-search taunt")]
+    [Tooltip("Probing next to the previous probe while at least this many cells are in range counts as linear search.")]
+    [SerializeField] private int linearRangeThreshold = 3;
+    [Tooltip("Fire-interval multiplier while taunting (0.5 = twice as fast).")]
+    [SerializeField] private float tauntFireMultiplier = 0.5f;
 
     [Header("Closing walls")]
     [SerializeField] private SpriteRenderer wallPrefab;
@@ -78,25 +89,27 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         get
         {
             if (resorting) return "re-sorting...";
-            string label = $"binarySearch()  cmp {used}/{Budget}";
-            return Unsorted ? label + "  (unsorted!)" : label;
+            string label = $"binarySearch()  cmp {comparisonsUsed}/{comparisonBudget}";
+            return taunting ? label + "  O(n)!" : label;
         }
     }
 
-    private bool Unsorted => (float)Hp / maxHp <= unsortedHpFraction;
-    private int Budget => comparisonBudget + (searchUnsorted ? unsortedExtraComparisons : 0);
+    /// <summary>0 at full HP, 1 near death. Attacks speed up with it.</summary>
+    private float Anger => 1f - (float)Hp / maxHp;
 
     private SearchCell[] cells;
     private bool[] probed;
     private int target;
     private int lo, hi; // inclusive search range
-    private int used;
-    private int misses;
-    private int lieOnMiss; // 0 = no lie this search
-    private bool searchUnsorted;
+    private int comparisonsUsed;
+    private int lastProbe = -1;
+    private bool taunting;
     private bool resorting;
     private bool defeated;
     private float fireTimer;
+    private float cannonTimer;
+    private bool leftCannonNext = true;
+    private SpriteRenderer leftCannon, rightCannon;
 
     private Camera cam;
     private PlayerController playerMovement;
@@ -118,6 +131,9 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
             cells[i].Init(this, i);
         }
 
+        leftCannon = SpawnCannon(-1, width);
+        rightCannon = SpawnCannon(cellCount, width);
+
         leftWall = Instantiate(wallPrefab, transform);
         rightWall = Instantiate(wallPrefab, transform);
         GetScreenEdges(out wallMin, out wallMax);
@@ -126,6 +142,17 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
 
         NewSearch();
         fireTimer = fireIntervalRange.x;
+        cannonTimer = cannonIntervalRange.x;
+    }
+
+    private SpriteRenderer SpawnCannon(int index, float arrayWidth)
+    {
+        SpriteRenderer cannon = Instantiate(cannonPrefab, transform);
+        cannon.transform.localPosition = new Vector3(index * spacing - arrayWidth / 2f, 0f, 0f);
+        cannon.name = $"arr[{index}]";
+        cannon.color = cannonColor;
+        foreach (SpriteRenderer part in cannon.GetComponentsInChildren<SpriteRenderer>()) part.color = cannonColor;
+        return cannon;
     }
 
     public void SetTarget(Transform player) => playerMovement = player.GetComponent<PlayerController>();
@@ -144,8 +171,16 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         if (fireTimer <= 0f)
         {
             FireFrom(RandomLiveCell());
-            float anger = 1f - (float)Hp / maxHp;
-            fireTimer = Mathf.Lerp(fireIntervalRange.x, fireIntervalRange.y, anger);
+            fireTimer = Mathf.Lerp(fireIntervalRange.x, fireIntervalRange.y, Anger)
+                      * (taunting ? tauntFireMultiplier : 1f);
+        }
+
+        cannonTimer -= Time.deltaTime;
+        if (cannonTimer <= 0f)
+        {
+            StartCoroutine(FireCannon(leftCannonNext ? leftCannon : rightCannon));
+            leftCannonNext = !leftCannonNext;
+            cannonTimer = Mathf.Lerp(cannonIntervalRange.x, cannonIntervalRange.y, Anger);
         }
     }
 
@@ -156,8 +191,13 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     {
         if (defeated || resorting || !cell.IsLive) return;
         int i = cell.Index;
-        used++;
+        comparisonsUsed++;
         probed[i] = true;
+
+        // Linear search: a binary search never probes next to its last probe while 3+ cells remain.
+        bool linear = lastProbe >= 0 && Mathf.Abs(i - lastProbe) == 1 && hi - lo + 1 >= linearRangeThreshold;
+        lastProbe = i;
+        if (linear) taunting = true;
 
         // Off-by-one: the neighbors retaliate.
         if (i > 0) FireFrom(cells[i - 1]);
@@ -169,35 +209,25 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
             return;
         }
 
-        misses++;
-        bool lie = misses == lieOnMiss;
+        // Miss: point toward the bug and discard the half that can't contain it.
         bool bugIsRight = i < target;
-        if (lie)
-        {
-            // Unsorted input: the wrong arrow, and nothing is eliminated.
-            cell.Show(bugIsRight ? lessGlyph : greaterGlyph, hintColor, false);
-            StartCoroutine(Flicker(cell));
-        }
-        else
-        {
-            if (bugIsRight) lo = Mathf.Max(lo, i + 1);
-            else hi = Mathf.Min(hi, i - 1);
-            cell.Show(bugIsRight ? greaterGlyph : lessGlyph, hintColor, false);
-        }
+        if (bugIsRight) lo = Mathf.Max(lo, i + 1);
+        else hi = Mathf.Min(hi, i - 1);
+        cell.Show(bugIsRight ? greaterGlyph : lessGlyph, hintColor, false);
         RefreshCells();
         LabelChanged?.Invoke(Label);
 
-        if (used >= Budget) StartCoroutine(Resort(punish: true));
+        if (comparisonsUsed >= comparisonBudget) StartCoroutine(Resort(punish: true));
     }
 
     private void Find(SearchCell cell)
     {
-        int damage = baseFindDamage + damagePerSavedComparison * Mathf.Max(0, Budget - used);
+        int damage = baseFindDamage + damagePerSavedComparison * Mathf.Max(0, comparisonBudget - comparisonsUsed);
         Hp = Mathf.Max(0, Hp - damage);
         cell.Show(bugGlyph, foundColor, false);
         if (popEffect != null) popEffect.Spawn(cell.transform.position, foundColor);
         HpChanged?.Invoke(Hp, maxHp);
-        LabelChanged?.Invoke($"found in {used} cmp: -{damage}");
+        LabelChanged?.Invoke($"found in {comparisonsUsed} cmp: -{damage}");
 
         if (Hp <= 0) StartCoroutine(Defeat());
         else StartCoroutine(Resort(punish: false));
@@ -220,11 +250,9 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         target = UnityEngine.Random.Range(0, cellCount);
         lo = 0;
         hi = cellCount - 1;
-        used = 0;
-        misses = 0;
-        searchUnsorted = Unsorted;
-        // One of the first two misses lies, while the input is unsorted.
-        lieOnMiss = searchUnsorted ? UnityEngine.Random.Range(1, 3) : 0;
+        comparisonsUsed = 0;
+        lastProbe = -1;
+        taunting = false;
         Array.Clear(probed, 0, probed.Length);
         foreach (SearchCell c in cells) c.Show(unknownGlyph, unknownColor, true);
         OpenWalls();
@@ -258,19 +286,6 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         resorting = false;
         StunnedChanged?.Invoke(false);
         NewSearch();
-    }
-
-    /// <summary>A lying hint flickers faintly, the only tell that the input is unsorted.</summary>
-    private IEnumerator Flicker(SearchCell cell)
-    {
-        var glyph = cell.transform.Find("Glyph").GetComponent<SpriteRenderer>();
-        var wait = new WaitForSeconds(0.15f);
-        while (cell != null && glyph.sprite != unknownGlyph && !resorting)
-        {
-            Color c = glyph.color;
-            glyph.color = new Color(c.r, c.g, c.b, c.a > 0.75f ? 0.55f : 1f);
-            yield return wait;
-        }
     }
 
     private IEnumerator Defeat()
@@ -360,6 +375,24 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         foreach (SearchCell c in cells)
             if (c != null && c.IsLive && pick-- == 0) return c;
         return null;
+    }
+
+    /// <summary>An out-of-bounds cannon flashes, then fires an aimed shot from the array's edge.</summary>
+    private IEnumerator FireCannon(SpriteRenderer cannon)
+    {
+        var parts = cannon.GetComponentsInChildren<SpriteRenderer>();
+        for (float t = 0f; t < cannonTelegraphTime; t += 0.07f)
+        {
+            foreach (SpriteRenderer part in parts) part.color = part.color == cannonColor ? Color.white : cannonColor;
+            yield return new WaitForSeconds(0.07f);
+        }
+        foreach (SpriteRenderer part in parts) part.color = cannonColor;
+        if (defeated || resorting || playerMovement == null) yield break;
+
+        Vector3 muzzle = cannon.transform.position + Vector3.down * 0.5f;
+        Vector2 aim = (Vector2)(playerMovement.transform.position - muzzle);
+        SplitShot shot = Instantiate(shotPrefab, muzzle, Quaternion.identity);
+        shot.Launch(null, 0, aim, cannonColor, label: "IndexOutOfBounds");
     }
 
     private void FireFrom(SearchCell cell)
