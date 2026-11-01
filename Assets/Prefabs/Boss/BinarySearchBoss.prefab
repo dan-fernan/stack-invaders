@@ -55,9 +55,17 @@ MonoBehaviour:
   hintColor: {r: 0.8901961, g: 0.7019608, b: 0.25490198, a: 1}
   eliminatedColor: {r: 0.1882353, g: 0.21176471, b: 0.23921569, a: 1}
   foundColor: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
-  finds: 3
+  maxHp: 100
+  baseFindDamage: 20
+  damagePerSavedComparison: 8
   comparisonBudget: 6
+  revealTime: 0.5
   resortTime: 1.2
   popEffect: {fileID: 6178787030115165103, guid: 926cb54ec6543413f99435354ca3a7b1, type: 3}
+  unsortedHpFraction: 0.3
+  unsortedExtraComparisons: 1
+  wallPrefab: {fileID: 4816509895221299920, guid: b3844e0a9332440259056e14f207bdf2, type: 3}
+  minRoom: 3
+  wallSpeed: 6
   shotPrefab: {fileID: 6905535689674915539, guid: e466a1a9b0a884d82956079b7b5dd35b, type: 3}
   fireIntervalRange: {x: 0.9, y: 0.5}

@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// Moves the player ship left/right with A/D (or arrow keys) and keeps it fully on screen.
 /// Covers the assignment requirement: "Prevent the spaceship from moving offscreen."
+/// Bosses can narrow the allowed range further (e.g. binary search's closing walls).
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
 public class PlayerController : MonoBehaviour
@@ -16,6 +17,18 @@ public class PlayerController : MonoBehaviour
 
     private Camera cam;
     private SpriteRenderer spriteRenderer;
+    private bool limited;
+    private float limitMin, limitMax;
+
+    /// <summary>Confine the ship (its whole body) to world x between min and max, on top of the screen clamp.</summary>
+    public void SetMovementLimits(float min, float max)
+    {
+        limited = true;
+        limitMin = min;
+        limitMax = max;
+    }
+
+    public void ClearMovementLimits() => limited = false;
 
     private void Awake()
     {
@@ -55,6 +68,13 @@ public class PlayerController : MonoBehaviour
         float limit = halfViewWidth - halfShipWidth - edgePadding;
 
         float camX = cam.transform.position.x;
-        return Mathf.Clamp(x, camX - limit, camX + limit);
+        x = Mathf.Clamp(x, camX - limit, camX + limit);
+
+        if (limited)
+        {
+            float min = limitMin + halfShipWidth, max = limitMax - halfShipWidth;
+            x = min <= max ? Mathf.Clamp(x, min, max) : (limitMin + limitMax) / 2f;
+        }
+        return x;
     }
 }

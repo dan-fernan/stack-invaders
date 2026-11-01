@@ -90,17 +90,25 @@ Between waves 2 and 3. A bug hides in one cell of a 16-cell sorted array, and ev
 
 - **Each shot is a comparison.** Hit a wrong cell and it shows `>` or `<`, pointing toward the
   bug. Every cell on the wrong side is **eliminated**: grayed out, and shots pass through it,
-  just as a binary search discards half its range. Hit the bug's cell and it's **found**: the
-  bug appears in red and the boss loses 1 of its 3 health.
-- **Comparison budget:** 6 per search. An optimal binary search over 16 cells needs at most 5.
-  Run out and the array **re-sorts**: the bug moves, the hints clear, and every live cell fires
-  at once as punishment. Each find also re-sorts.
-- **Attack:** live cells drop shots straight down, faster as the boss weakens, so searching
-  efficiently also means less incoming fire. A parried shot flies back up and probes the cell
-  it hits.
-- The HUD shows `binarySearch()  cmp 2/6` above the health bar.
+  just as a binary search discards half its range. Hit the bug's cell and it's **found**.
+- **Efficient searches hurt more.** The boss has 100 HP. A find deals 20 damage plus 8 for
+  every comparison left in the budget (6 per search; an optimal search of 16 cells needs at most
+  5). A 4-comparison find deals 36, a 6-comparison find only 20, and the HUD reports it
+  (`found in 4 cmp: -36`).
+- **The search space is your space.** Gray "discarded memory" walls close in from the sides under
+  the eliminated cells, pushing the developer toward the live part of the array, always leaving at
+  least 3 units of room. They open again on a re-sort.
+- **Off-by-one.** Every probe makes the probed cell's two neighbors fire, so each comparison has a
+  price.
+- **Unsorted input (30% HP and below).** Binary search only works on sorted data, so the boss
+  "corrupts its sort": one of the first two hints per search **lies**. It shows the wrong arrow,
+  flickers faintly, and eliminates nothing. The cells you probe next still tell the truth and point
+  you back. Unsorted searches get 1 extra comparison, and the HUD warns `(unsorted!)`.
+- **Re-sort.** Running out of comparisons, or making a find, re-sorts the array: the bug moves and
+  the hints clear. Running out also makes every live cell fire at once. Live cells drop shots
+  meanwhile, faster as the boss weakens. A parried shot flies back up and probes the cell it hits.
 
-Implementation: `BinarySearchBoss`, `SearchCell`.
+Implementation: `BinarySearchBoss`, `SearchCell`, and movement limits in `PlayerController`.
 
 ### Final boss: recursion
 
