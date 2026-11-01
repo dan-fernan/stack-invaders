@@ -558,7 +558,7 @@ MonoBehaviour:
   spacing: {x: 1, y: 0.75}
   stepX: 0.125
   stepDown: 0.25
-  slowestStepInterval: 0.6
+  slowestStepInterval: 0.45
   fastestStepInterval: 0.04
   edgePadding: 0.25
 --- !u!4 &1757396455

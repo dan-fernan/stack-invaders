@@ -31,7 +31,7 @@ public class AlienFormation : MonoBehaviour
     [Tooltip("Distance dropped when the formation hits an edge.")]
     [SerializeField] private float stepDown = 0.25f;
     [Tooltip("Seconds between steps with a full formation.")]
-    [SerializeField] private float slowestStepInterval = 0.6f;
+    [SerializeField] private float slowestStepInterval = 0.45f;
     [Tooltip("Seconds between steps when one alien is left.")]
     [SerializeField] private float fastestStepInterval = 0.04f;
     [SerializeField] private float edgePadding = 0.25f;
