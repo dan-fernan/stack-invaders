@@ -29,7 +29,7 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
 
     public bool IsDangerous => !done && !parried;
     public Vector3 Position => transform.position;
-    public string ParryLabel => source != null ? source.name : "return";
+    public string ParryLabel => source != null ? source.name : "return value";
 
     private void Awake()
     {
@@ -43,12 +43,19 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
     private void OnDisable() => Parryables.Unregister(this);
 
     /// <param name="from">The frame that fired it (parried shots fly back toward it).</param>
-    public void Launch(BossFrame from, int splits, Vector2 direction, Color color)
+    /// <param name="glyph">Optional sprite override (return values fall as their digit).</param>
+    public void Launch(BossFrame from, int splits, Vector2 direction, Color color,
+                       Sprite glyph = null, float speedScale = 1f)
     {
         source = from;
         splitsLeft = splits;
         sprite.color = color;
-        rb.linearVelocity = direction.normalized * speed;
+        if (glyph != null)
+        {
+            sprite.sprite = glyph;
+            if (TryGetComponent(out BoxCollider2D box)) box.size = glyph.bounds.size;
+        }
+        rb.linearVelocity = direction.normalized * (speed * speedScale);
     }
 
     private void Update()
@@ -77,7 +84,8 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
         foreach (float angle in new[] { -splitAngle, splitAngle })
         {
             SplitShot child = Instantiate(this, transform.position, Quaternion.identity);
-            child.Launch(source, splitsLeft - 1, Quaternion.Euler(0f, 0f, angle) * v, sprite.color);
+            child.Launch(source, splitsLeft - 1, Quaternion.Euler(0f, 0f, angle) * v, sprite.color,
+                         speedScale: v.magnitude / speed);
         }
         Finish(false);
     }

@@ -264,6 +264,15 @@ public class AlienFormation : MonoBehaviour
         return null;
     }
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    /// <summary>Debug only: kills every bug in this formation.</summary>
+    public void DebugKillAll()
+    {
+        foreach (Alien alien in new List<Alien>(aliens))
+            alien.Kill();
+    }
+#endif
+
     private void OnAlienKilled(Alien alien)
     {
         alien.Killed -= OnAlienKilled;

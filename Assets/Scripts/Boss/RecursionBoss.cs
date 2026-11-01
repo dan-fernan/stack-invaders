@@ -13,6 +13,10 @@ using UnityEngine;
 ///   - Growing past the stack limit throws StackOverflowError: the boss freezes for a
 ///     few seconds, then its deep frames unwind.
 ///   - Frames fire SplitShots whose split count equals their N (the recursion depth left).
+///   - The root fires a telegraphed stack-trace beam, more often as it loses HP.
+///   - Unwound frames "return" their N: the digit falls as a projectile (return-value rain).
+///     Frames lost to a stack overflow crashed, so they return nothing.
+///   - Below half HP, clones make telegraphed tail-call dives at the developer.
 /// </summary>
 public class RecursionBoss : MonoBehaviour
 {
@@ -32,7 +36,7 @@ public class RecursionBoss : MonoBehaviour
     [Header("Recursion")]
     [Tooltip("The root is recurse(maxDepth); recurse(0) frames can't call further.")]
     [SerializeField] private int maxDepth = 3;
-    [SerializeField] private int rootHp = 12;
+    [SerializeField] private int rootHp = 40;
     [SerializeField] private int cloneHp = 1;
     [Tooltip("Seconds between recursive calls (new clones).")]
     [SerializeField] private float callInterval = 1.6f;
@@ -55,6 +59,26 @@ public class RecursionBoss : MonoBehaviour
     [Tooltip("Chance the root fires a given shot itself (its shots split the most).")]
     [Range(0f, 1f)] [SerializeField] private float rootFireChance = 0.35f;
 
+    [Header("Stack-trace beam")]
+    [SerializeField] private StackTraceBeam beamPrefab;
+    [Tooltip("Seconds between beams at full root HP / near death.")]
+    [SerializeField] private Vector2 beamIntervalRange = new Vector2(9f, 4f);
+
+    [Header("Return-value rain")]
+    [Tooltip("Return values fall at this fraction of a split shot's speed.")]
+    [SerializeField] private float returnValueSpeedScale = 0.75f;
+
+    [Header("Tail-call dive")]
+    [Tooltip("Dives start once the root's HP fraction drops to this.")]
+    [Range(0f, 1f)] [SerializeField] private float diveHpThreshold = 0.5f;
+    [Tooltip("Seconds between dives just below the threshold / near death.")]
+    [SerializeField] private Vector2 diveIntervalRange = new Vector2(6f, 3f);
+    [SerializeField] private float diveTelegraphTime = 0.6f;
+    [SerializeField] private float diveSpeed = 9f;
+    [SerializeField] private float diveReturnSpeed = 8f;
+    [SerializeField] private Sprite telegraphDot;
+    [SerializeField] private int telegraphDots = 8;
+
     [Header("Movement")]
     [SerializeField] private float driftAmplitude = 1.5f;
     [SerializeField] private float driftPeriod = 8f;
@@ -76,16 +100,29 @@ public class RecursionBoss : MonoBehaviour
     private readonly List<(BossFrame parent, int slot)> openSlots = new List<(BossFrame, int)>();
     private float callTimer;
     private float fireTimer;
+    private float beamTimer;
+    private float diveTimer;
+    private Transform target;
+    private Camera cam;
     private float driftTime;
     private float baseX;
     private bool defeated;
 
     private void Awake()
     {
+        cam = Camera.main;
         baseX = transform.position.x;
         Root = SpawnFrame(null, 0, Vector3.zero);
         fireTimer = fireIntervalRange.x;
+        beamTimer = beamIntervalRange.x;
+        diveTimer = diveIntervalRange.x;
     }
+
+    /// <summary>The developer, for aiming dives.</summary>
+    public void SetTarget(Transform player) => target = player;
+
+    /// <summary>0 at full root HP, 1 when nearly dead. Attacks speed up with it.</summary>
+    private float Anger => 1f - (float)Root.Hp / Root.MaxHp;
 
     private void Start() => RootHpChanged?.Invoke(Root.Hp, Root.MaxHp);
 
@@ -106,8 +143,25 @@ public class RecursionBoss : MonoBehaviour
         if (fireTimer <= 0f)
         {
             Fire();
-            float anger = 1f - (float)Root.Hp / Root.MaxHp;
-            fireTimer = Mathf.Lerp(fireIntervalRange.x, fireIntervalRange.y, anger);
+            fireTimer = Mathf.Lerp(fireIntervalRange.x, fireIntervalRange.y, Anger);
+        }
+
+        beamTimer -= Time.deltaTime;
+        if (beamTimer <= 0f)
+        {
+            FireBeam();
+            beamTimer = Mathf.Lerp(beamIntervalRange.x, beamIntervalRange.y, Anger);
+        }
+
+        if (Anger >= 1f - diveHpThreshold && target != null)
+        {
+            diveTimer -= Time.deltaTime;
+            if (diveTimer <= 0f)
+            {
+                StartCoroutine(TailCallDive());
+                float t = Mathf.InverseLerp(1f - diveHpThreshold, 1f, Anger);
+                diveTimer = Mathf.Lerp(diveIntervalRange.x, diveIntervalRange.y, t);
+            }
         }
     }
 
@@ -184,6 +238,7 @@ public class RecursionBoss : MonoBehaviour
     {
         BossFrame frame = Instantiate(framePrefab, transform);
         frame.transform.localPosition = localPosition;
+        frame.SlotLocalPosition = localPosition;
 
         int depth = parent == null ? 0 : parent.Depth + 1;
         int n = maxDepth - depth;
@@ -204,7 +259,8 @@ public class RecursionBoss : MonoBehaviour
     }
 
     /// <summary>Destroys a frame and every call it made, deepest levels last.</summary>
-    public void Unwind(BossFrame frame)
+    /// <param name="returnValues">Each unwound frame drops its N (false for crashed frames).</param>
+    public void Unwind(BossFrame frame, bool returnValues = true)
     {
         // Gather the subtree by depth level before anything is removed.
         var levels = new List<List<BossFrame>>();
@@ -229,10 +285,10 @@ public class RecursionBoss : MonoBehaviour
 
         bool rootDown = frame.IsRoot;
         if (rootDown) defeated = true;
-        StartCoroutine(PopLevels(levels, rootDown));
+        StartCoroutine(PopLevels(levels, rootDown, returnValues && !rootDown));
     }
 
-    private IEnumerator PopLevels(List<List<BossFrame>> levels, bool rootDown)
+    private IEnumerator PopLevels(List<List<BossFrame>> levels, bool rootDown, bool returnValues)
     {
         var wait = new WaitForSeconds(unwindStepTime);
         foreach (List<BossFrame> level in levels)
@@ -240,6 +296,7 @@ public class RecursionBoss : MonoBehaviour
             foreach (BossFrame f in level)
             {
                 if (unwindEffect != null) unwindEffect.Spawn(f.transform.position, f.Color);
+                if (returnValues) ReturnValue(f);
                 Destroy(f.gameObject);
             }
             yield return wait;
@@ -260,14 +317,65 @@ public class RecursionBoss : MonoBehaviour
         foreach (BossFrame f in frames)
             if (f.Depth == overflowUnwindDepth) deep.Add(f);
         foreach (BossFrame f in deep)
-            if (!f.IsDead) Unwind(f);
+            if (!f.IsDead) Unwind(f, returnValues: false); // crashed calls never return
 
         IsStunned = false;
         callTimer = 0f;
         OverflowChanged?.Invoke(false);
     }
 
-    // ---------- Attack ----------
+    // ---------- Attacks ----------
+
+    /// <summary>An unwound frame "returns" its N: the digit falls straight down.</summary>
+    private void ReturnValue(BossFrame frame)
+    {
+        SplitShot value = Instantiate(shotPrefab, frame.transform.position, Quaternion.identity);
+        value.Launch(frame, 0, Vector2.down, frame.Color, digits[frame.N], returnValueSpeedScale);
+    }
+
+    /// <summary>The root marks its column, then fires a stack-trace beam down it.</summary>
+    private void FireBeam()
+    {
+        if (beamPrefab == null || Root == null || Root.IsDead) return;
+        float top = Root.transform.position.y - Root.GetComponent<SpriteRenderer>().bounds.extents.y;
+        float bottom = cam.transform.position.y - cam.orthographicSize;
+        StackTraceBeam beam = Instantiate(beamPrefab);
+        beam.Fire(Root.transform.position.x, top, bottom);
+    }
+
+    /// <summary>A clone marks a dotted path to the developer, then dives along it.</summary>
+    private IEnumerator TailCallDive()
+    {
+        var candidates = new List<BossFrame>();
+        foreach (BossFrame f in frames)
+            if (!f.IsRoot && !f.IsDead && !f.IsDiving) candidates.Add(f);
+        if (candidates.Count == 0) yield break;
+
+        BossFrame diver = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+        Vector2 aim = target.position;
+
+        // Telegraph: dotted line from the clone to where the developer was.
+        var dots = new List<SpriteRenderer>();
+        for (int i = 1; i <= telegraphDots; i++)
+        {
+            var dot = new GameObject("TailCallDot").AddComponent<SpriteRenderer>();
+            dot.sprite = telegraphDot;
+            dot.color = diver.Color;
+            dot.sortingOrder = 3;
+            dot.transform.position = Vector2.Lerp(diver.transform.position, aim, i / (float)(telegraphDots + 1));
+            dots.Add(dot);
+        }
+        diver.Flash(diveTelegraphTime);
+        for (float t = 0f; t < diveTelegraphTime; t += 0.1f)
+        {
+            foreach (SpriteRenderer dot in dots) dot.enabled = !dot.enabled;
+            yield return new WaitForSeconds(0.1f);
+        }
+        foreach (SpriteRenderer dot in dots) Destroy(dot.gameObject);
+
+        if (diver != null && !diver.IsDead && !IsStunned && !defeated)
+            diver.StartDive(aim, diveSpeed, diveReturnSpeed, cam);
+    }
 
     private void Fire()
     {

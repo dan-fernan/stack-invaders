@@ -118,6 +118,15 @@ public class WaveManager : MonoBehaviour
 
     private void OnFormationStepped(AlienFormation formation) => Stepped?.Invoke();
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+    /// <summary>Debug only: kills every bug in the current wave.</summary>
+    public void DebugClearWave()
+    {
+        foreach (AlienFormation formation in new List<AlienFormation>(active))
+            formation.DebugKillAll();
+    }
+#endif
+
     private void OnFormationCleared(AlienFormation formation)
     {
         formation.Stepped -= OnFormationStepped;

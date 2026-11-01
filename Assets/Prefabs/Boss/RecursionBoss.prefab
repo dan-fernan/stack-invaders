@@ -92,7 +92,7 @@ MonoBehaviour:
   digitColor: {r: 0.050980393, g: 0.06666667, b: 0.09019608, a: 1}
   unwindEffect: {fileID: 527611924584414933, guid: 55ddc8b92a8fd462584c4f34fc37a071, type: 3}
   maxDepth: 3
-  rootHp: 12
+  rootHp: 40
   cloneHp: 1
   callInterval: 1.6
   stackLimit: 12
@@ -108,6 +108,16 @@ MonoBehaviour:
   shotPrefab: {fileID: 6905535689674915539, guid: e466a1a9b0a884d82956079b7b5dd35b, type: 3}
   fireIntervalRange: {x: 1.5, y: 0.7}
   rootFireChance: 0.35
+  beamPrefab: {fileID: 3659793071824465773, guid: 61082bd13607a4a66925d5e026551d54, type: 3}
+  beamIntervalRange: {x: 9, y: 4}
+  returnValueSpeedScale: 0.75
+  diveHpThreshold: 0.5
+  diveIntervalRange: {x: 6, y: 3}
+  diveTelegraphTime: 0.6
+  diveSpeed: 9
+  diveReturnSpeed: 8
+  telegraphDot: {fileID: 21300000, guid: 162012b709532481daa9daaf97ce44f1, type: 3}
+  telegraphDots: 8
   driftAmplitude: 1.5
   driftPeriod: 8
   pixelsPerUnit: 16

@@ -107,6 +107,11 @@ public class GameManager : MonoBehaviour
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
 
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        // Debug: F10 clears the current wave (three presses reach the miniboss).
+        if (state == State.Playing && kb.f10Key.wasPressedThisFrame) waveManager.DebugClearWave();
+#endif
+
         switch (state)
         {
             case State.Title when typing != null:
@@ -203,6 +208,7 @@ public class GameManager : MonoBehaviour
 
         boss = Instantiate(bossPrefab, bossPosition, Quaternion.identity);
         boss.enabled = false; // paused behind the terminal
+        boss.SetTarget(playerSprite.transform);
         boss.Defeated += OnBossDefeated;
         waveHud.SetActive(false);
         bossHud.gameObject.SetActive(true);

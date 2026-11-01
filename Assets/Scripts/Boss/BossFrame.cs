@@ -6,9 +6,11 @@ using UnityEngine;
 /// One call frame of the recursion boss: recurse(N). The root is recurse(maxDepth);
 /// every frame it calls sits one depth lower. Destroying a frame unwinds its whole
 /// subtree (handled by RecursionBoss). Clone bodies physically block player shots.
+/// A clone can also make a tail-call dive at the developer (shootable and parryable
+/// while diving), then fly back to its slot if it misses.
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer), typeof(Collider2D))]
-public class BossFrame : MonoBehaviour, IShootable
+public class BossFrame : MonoBehaviour, IShootable, IParryable
 {
     [Tooltip("Shows N on the frame's body.")]
     [SerializeField] private SpriteRenderer label;
@@ -28,6 +30,17 @@ public class BossFrame : MonoBehaviour, IShootable
     public bool IsDead { get; private set; }
     public Color Color { get; private set; }
 
+    /// <summary>Its place in the tree, relative to the boss (it returns here after a dive).</summary>
+    public Vector3 SlotLocalPosition { get; set; }
+
+    /// <summary>Out of formation on a tail-call dive (including the trip back).</summary>
+    public bool IsDiving { get; private set; }
+
+    // IParryable: only a frame diving at the developer can be caught.
+    public bool IsDangerous => IsDiving && !returning && !IsDead;
+    public Vector3 Position => transform.position;
+    public string ParryLabel => name;
+
     /// <summary>Which of its parent's call slots this frame occupies.</summary>
     public int SlotInParent { get; set; }
 
@@ -37,6 +50,7 @@ public class BossFrame : MonoBehaviour, IShootable
     private SpriteRenderer body;
     private Collider2D hitbox;
     private Color labelColor;
+    private bool returning;
 
     private void Awake()
     {
@@ -82,6 +96,74 @@ public class BossFrame : MonoBehaviour, IShootable
         IsDead = true;
         hitbox.enabled = false;
         Parent?.Children.Remove(this);
+        Parryables.Unregister(this);
+    }
+
+    private void OnDestroy() => Parryables.Unregister(this);
+
+    // ---------- Tail-call dive ----------
+
+    /// <summary>Dive in a straight line at <paramref name="target"/>; if it misses, come back home.</summary>
+    public void StartDive(Vector2 target, float speed, float returnSpeed, Camera cam)
+    {
+        if (IsDead || IsDiving) return;
+        StartCoroutine(Dive(target, speed, returnSpeed, cam));
+    }
+
+    private IEnumerator Dive(Vector2 target, float speed, float returnSpeed, Camera cam)
+    {
+        IsDiving = true;
+        returning = false;
+        Parryables.Register(this);
+
+        Vector3 dir = ((Vector3)target - transform.position).normalized;
+        while (OnScreen(cam))
+        {
+            transform.position += dir * (speed * Time.deltaTime);
+            yield return null;
+        }
+
+        // Missed: re-enter from the top and fly back to the slot (harmless on the way).
+        Parryables.Unregister(this);
+        returning = true;
+        Vector3 c = cam.transform.position;
+        float halfW = cam.orthographicSize * cam.aspect;
+        transform.position = new Vector3(Mathf.Clamp(transform.position.x, c.x - halfW, c.x + halfW),
+                                         c.y + cam.orthographicSize + 1f, 0f);
+        while (true)
+        {
+            Vector3 home = transform.parent.TransformPoint(SlotLocalPosition);
+            transform.position = Vector3.MoveTowards(transform.position, home, returnSpeed * Time.deltaTime);
+            if (transform.position == home) break;
+            yield return null;
+        }
+
+        transform.localPosition = SlotLocalPosition;
+        returning = false;
+        IsDiving = false;
+    }
+
+    private bool OnScreen(Camera cam)
+    {
+        Vector3 c = cam.transform.position;
+        Vector3 p = transform.position;
+        return Mathf.Abs(p.x - c.x) < cam.orthographicSize * cam.aspect + 1f
+            && Mathf.Abs(p.y - c.y) < cam.orthographicSize + 1f;
+    }
+
+    /// <summary>Caught by the breakpoint parry mid-dive: the call is cut short (it dies and unwinds).</summary>
+    public bool StepInto()
+    {
+        if (!IsDangerous) return false;
+        TakeDamage(Hp);
+        return true;
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (!IsDangerous) return;
+        if (other.TryGetComponent(out BreakpointParry parry) && parry.TryCatch(this)) return;
+        if (other.TryGetComponent(out PlayerHealth health)) health.TakeHit();
     }
 
     /// <summary>Blink white (used on hits and on stack overflow).</summary>

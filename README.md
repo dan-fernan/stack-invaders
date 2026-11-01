@@ -23,6 +23,7 @@ instructor's code and documenting how this project handles each one instead (see
 | Space (hold) | Attack with your language's weapon (Java: throw coffee) |
 | Shift | Breakpoint parry: catch incoming bits and send them back |
 | R | Restart after a win or game over |
+| F10 (Editor / development builds only) | Debug: clear the current wave, so three presses reach the miniboss |
 
 ## Required features
 
@@ -93,17 +94,29 @@ After wave 3, the boss `recurse(3)` appears. It's built around how recursion wor
   argument as a number on its body. A frame's first call always lands directly below it, so a
   column of clones shields the root; other calls branch outward.
 - **Unwinding.** Clones have 1 HP and block player shots. Destroying any frame unwinds its whole
-  subtree, one depth level at a time. The root has 12 HP; destroying it unwinds the entire call
-  stack and wins the fight. Cut a branch to open a lane, then hit the root.
+  subtree, one depth level at a time. The root has 40 HP, shown in a boss health bar across the
+  top of the screen (the fill flashes on hits, a lighter trail shows recent damage, and the bar
+  turns gray during a stack overflow). Destroying the root unwinds the entire call stack and wins
+  the fight. Cut a branch to open a lane, then hit the root.
 - **Stack overflow.** If the tree grows past 12 frames, the boss throws `StackOverflowError`: it
   freezes and flashes for 4 s (the HUD shows the error), then its deep frames unwind.
 - **Recursive split shot.** A frame fires a shot that splits in two every 0.45 s, as many times
   as its argument, so the root's shots go 1 → 2 → 4 → 8 while base cases fire single shots.
   Shooting a shot before it splits removes its future children. The boss fires faster as the
   root loses health.
+- **Stack-trace beam.** The root marks its column with a blinking red outline for 0.8 s, then
+  fires a 1 s beam of scrolling stack-trace lines down it. Move out of the column. It fires every
+  9 s at full health, down to every 4 s near death.
+- **Return-value rain.** Every frame you unwind "returns" its N: the digit falls straight down,
+  so a big unwind above you means a lot of rain. You can shoot the falling digits or parry them
+  back up. Frames lost to a stack overflow crashed, so they return nothing.
+- **Tail-call dive.** Below half health, a clone blinks and marks a dotted path to where you
+  are, then dives along it. If it misses, it leaves the screen and flies back to its slot. A
+  diving clone can be shot, or parried, which kills it and unwinds its subtree.
 
-Implementation: `RecursionBoss` (calling, unwinding, overflow, firing), `BossFrame` (one call
-frame), `SplitShot`, and `BossHud` (`recurse(3)  [########----]`).
+Implementation: `RecursionBoss` (calling, unwinding, overflow, attacks), `BossFrame` (one call
+frame, including the dive), `SplitShot` (split shots and return values), `StackTraceBeam`, and
+`BossHud` (health bar).
 
 ## Languages (weapon select)
 
@@ -262,7 +275,7 @@ Assets/
     GameManager.cs            win/lose rules, game-over screen, restart
     Player/                   PlayerController (move + clamp), PlayerHealth, BreakpointParry,
                               PlayerShooter + Bullet (generic blaster, not in the scene; base for Python)
-    Boss/                     RecursionBoss, BossFrame, SplitShot
+    Boss/                     RecursionBoss, BossFrame, SplitShot, StackTraceBeam
     Languages/                LanguageSelect, LanguageOption
       Java/                   JavaWeapon (coffee throw + JIT), CoffeeCup, GarbageCollector
     Aliens/                   WaveManager (waves of formations), AlienFormation (layout, lane, march, speed-up),
@@ -270,7 +283,7 @@ Assets/
     UI/                       HeartsDisplay, JavaHud, WaveHud, BossHud, FloatingText
     Effects/                  OneShotAnimation (pixel flipbooks), CameraShake
     IShootable.cs             anything player bullets can destroy
-  Prefabs/                    Formation, Boss/ (RecursionBoss, BossFrame, SplitShot), Alien, Bullet, Bit, Languages/ (CoffeeCup), Effects/ (BugSquash, BitPop, CoffeeSplash)
+  Prefabs/                    Formation, Boss/ (RecursionBoss, BossFrame, SplitShot, StackTraceBeam), Alien, Bullet, Bit, Languages/ (CoffeeCup), Effects/ (BugSquash, BitPop, CoffeeSplash)
   Art/Sprites/                pixel-art sprites (16 PPU, point filtered)
   Art/Fonts/                  VT323 font + license
 ```
