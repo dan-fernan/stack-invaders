@@ -21,6 +21,7 @@ instructor's code and documenting how this project handles each one instead (see
 | Space | On the start screen: skip the typing, then pick the highlighted language |
 | W / S (or ↑ / ↓), 1–3 | Choose a language on the start screen |
 | Space (hold) | Attack with your language's weapon (Java: throw coffee) |
+| Shift | Breakpoint parry: catch incoming bits and send them back |
 | R | Restart after a win or game over |
 
 ## Required features
@@ -63,6 +64,23 @@ Each formation has its own `FleetThrower`, with only one of its throws in the ai
 deciding the outcome), `BitProjectile` (homing, returning, hits), `AlienFormation.TryPickThrow()`
 (finding a neighbor on the grid), and `Alien.SetAway()`, `Flash()` and `Wobble()`. Player
 bullets hit anything that implements `IShootable`, so they handle bugs and bits the same way.
+
+### Breakpoint parry
+
+Every language gets the same native parry: the developer sets a breakpoint.
+
+1. **Shift** opens a 0.2 s window, and a red ● breakpoint dot appears beside the developer.
+2. Any bit within 0.9 units, or touching the developer, during the window is **paused**: the
+   game freezes for 0.06 s and `● paused: 0` pops up.
+3. **Step Into:** the caught bit turns developer-green, flies back to its slot and **patches**
+   the bug it came from, which is squashed in its slot. A patched bit can't hurt you or be shot.
+4. A successful window has no cooldown, so you can catch the 0 and then the 1. A window that
+   catches nothing detaches the debugger for 1 s, shown by a gray dot.
+
+This rewards timing over constant movement, and turns the fleet's attack into offense without
+making any weapon stronger. Implementation: `BreakpointParry`, `BitProjectile.StepInto()`,
+`Alien.Patch()`, and the pop-up text in `FloatingText`. The spec's *Breakpoint* powerup (freeze
+all enemies) will need a new name.
 
 ## Languages (weapon select)
 
@@ -219,13 +237,13 @@ fixed `stepDown` distance in a single step, with no timers.
 Assets/
   Scripts/
     GameManager.cs            win/lose rules, game-over screen, restart
-    Player/                   PlayerController (move + clamp), PlayerHealth,
+    Player/                   PlayerController (move + clamp), PlayerHealth, BreakpointParry,
                               PlayerShooter + Bullet (generic blaster, not in the scene; base for Python)
     Languages/                LanguageSelect, LanguageOption
       Java/                   JavaWeapon (coffee throw + JIT), CoffeeCup, GarbageCollector
     Aliens/                   WaveManager (waves of formations), AlienFormation (layout, lane, march, speed-up),
                               Alien, FleetThrower, BitProjectile
-    UI/                       HeartsDisplay, JavaHud, WaveHud
+    UI/                       HeartsDisplay, JavaHud, WaveHud, FloatingText
     Effects/                  OneShotAnimation (pixel flipbooks), CameraShake
     IShootable.cs             anything player bullets can destroy
   Prefabs/                    Formation, Alien, Bullet, Bit, Languages/ (CoffeeCup), Effects/ (BugSquash, BitPop, CoffeeSplash)

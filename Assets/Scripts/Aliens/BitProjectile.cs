@@ -8,14 +8,16 @@ using UnityEngine;
 ///   Coasting  – once it drops past the player's row it stops steering and flies on.
 ///   Returning – after leaving the screen it re-enters from the top and flies back to
 ///               its alien's slot (harmless to the player, still shootable).
+///   Patching  – caught by the player's breakpoint parry: flies back to its slot fast and
+///               kills the bug it came from (harmless, can't be shot).
 /// Reports exactly one Outcome, then destroys itself.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D), typeof(SpriteRenderer))]
 public class BitProjectile : MonoBehaviour, IShootable
 {
-    public enum Outcome { Returned, HitPlayer, Shot }
+    public enum Outcome { Returned, HitPlayer, Shot, Patched }
 
-    private enum State { Homing, Coasting, Returning }
+    private enum State { Homing, Coasting, Returning, Patching }
 
     [SerializeField] private float homingSpeed = 6f;
     [Tooltip("Max degrees per second the bit can turn toward the player. Higher = harder to dodge.")]
@@ -23,11 +25,21 @@ public class BitProjectile : MonoBehaviour, IShootable
     [Tooltip("Stops homing once the bit is this far above the player's position or lower.")]
     [SerializeField] private float homingCutoff = 0.5f;
     [SerializeField] private float returnSpeed = 7f;
+    [Tooltip("Speed when flying home after being parried.")]
+    [SerializeField] private float patchSpeed = 12f;
+    [Tooltip("Tint once parried: the bit now belongs to the developer.")]
+    [SerializeField] private Color patchColor = new Color32(0x39, 0xd3, 0x53, 0xff);
     [SerializeField] private float offscreenMargin = 0.5f;
     [Tooltip("Played when the bit is shot or hits the ship.")]
     [SerializeField] private OneShotAnimation popEffect;
 
     public event Action<BitProjectile, Outcome> Resolved;
+
+    /// <summary>"0" or "1".</summary>
+    public string Value { get; private set; }
+
+    /// <summary>Still a threat to the player (not heading home, parried or resolved).</summary>
+    public bool IsDangerous => !resolved && (state == State.Homing || state == State.Coasting);
 
     /// <summary>Every bit currently in play (lets Java's garbage collector find them without a scene search).</summary>
     public static IReadOnlyCollection<BitProjectile> Active => active;
@@ -56,15 +68,28 @@ public class BitProjectile : MonoBehaviour, IShootable
     /// </summary>
     public bool Collect()
     {
-        if (resolved || state == State.Returning) return false;
+        if (!IsDangerous) return false;
         popEffect.Spawn(transform.position, GetComponent<SpriteRenderer>().color);
         state = State.Returning;
         return true;
     }
 
-    /// <param name="homeSlot">Transform of the alien this bit came from (it keeps marching while hidden).</param>
-    public void Launch(Sprite glyph, Color color, Vector2 direction, Transform player, Transform homeSlot)
+    /// <summary>
+    /// Caught by the breakpoint parry: turn developer-green and fly home to patch the bug.
+    /// Returns false if the bit was no longer a threat.
+    /// </summary>
+    public bool StepInto()
     {
+        if (!IsDangerous) return false;
+        GetComponent<SpriteRenderer>().color = patchColor;
+        state = State.Patching;
+        return true;
+    }
+
+    /// <param name="homeSlot">Transform of the alien this bit came from (it keeps marching while hidden).</param>
+    public void Launch(string value, Sprite glyph, Color color, Vector2 direction, Transform player, Transform homeSlot)
+    {
+        Value = value;
         var sr = GetComponent<SpriteRenderer>();
         sr.sprite = glyph;
         sr.color = color;
@@ -88,16 +113,32 @@ public class BitProjectile : MonoBehaviour, IShootable
                 break;
 
             case State.Returning:
-                Vector2 toHome = (Vector2)home.position - pos;
-                if (toHome.magnitude <= returnSpeed * Time.fixedDeltaTime)
-                    Resolve(Outcome.Returned);
-                else
-                    rb.linearVelocity = toHome.normalized * returnSpeed;
+                FlyHome(pos, returnSpeed, Outcome.Returned);
+                return;
+
+            case State.Patching:
+                FlyHome(pos, patchSpeed, Outcome.Patched);
                 return;
         }
 
         if (IsOffscreen(pos))
             BeginReturn();
+    }
+
+    private void FlyHome(Vector2 pos, float speed, Outcome onArrival)
+    {
+        // The slot is gone if its formation was cleared while this bit was out.
+        if (home == null)
+        {
+            Resolve(onArrival);
+            return;
+        }
+
+        Vector2 toHome = (Vector2)home.position - pos;
+        if (toHome.magnitude <= speed * Time.fixedDeltaTime)
+            Resolve(onArrival);
+        else
+            rb.linearVelocity = toHome.normalized * speed;
     }
 
     private void SteerToward(Vector2 point)
@@ -130,18 +171,23 @@ public class BitProjectile : MonoBehaviour, IShootable
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (state == State.Returning) return; // harmless on the way home
+        if (!IsDangerous) return; // harmless on the way home
+        if (other.TryGetComponent(out BreakpointParry parry) && parry.TryCatch(this)) return;
         if (other.TryGetComponent(out PlayerHealth health) && health.TakeHit())
             Resolve(Outcome.HitPlayer);
     }
 
-    public void OnShot() => Resolve(Outcome.Shot);
+    public void OnShot()
+    {
+        if (state == State.Patching) return; // already the developer's
+        Resolve(Outcome.Shot);
+    }
 
     private void Resolve(Outcome outcome)
     {
         if (resolved) return;
         resolved = true;
-        if (outcome != Outcome.Returned)
+        if (outcome != Outcome.Returned && outcome != Outcome.Patched)
             popEffect.Spawn(transform.position, GetComponent<SpriteRenderer>().color);
         Resolved?.Invoke(this, outcome);
         Destroy(gameObject);

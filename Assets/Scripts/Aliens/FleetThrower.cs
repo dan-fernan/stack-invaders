@@ -5,6 +5,7 @@ using UnityEngine;
 /// The fleet's attack. A bug with a neighbor gets "picked up" (neighbor flashes,
 /// bug wobbles), then is molded into a 0 and a 1 and thrown at the ship as two
 /// homing bits. When both bits are resolved:
+///   - a parried bit got home      -> the bug was patched (killed) on arrival
 ///   - at least one made it home  -> the bug reconstructs in its slot
 ///   - neither made it home        -> the bug is dead (e.g. the player shot both)
 /// Only one throw is in the air at a time; throws come faster as the fleet shrinks.
@@ -94,27 +95,39 @@ public class FleetThrower : MonoBehaviour
         thrownAlien = target;
         anyReturned = false;
         bitsInFlight = 2;
-        SpawnBit(zeroSprite, target, origin + Vector3.left * bitSeparation, Rotate(toPlayer, -spreadAngle));
-        SpawnBit(oneSprite, target, origin + Vector3.right * bitSeparation, Rotate(toPlayer, spreadAngle));
+        SpawnBit("0", zeroSprite, target, origin + Vector3.left * bitSeparation, Rotate(toPlayer, -spreadAngle));
+        SpawnBit("1", oneSprite, target, origin + Vector3.right * bitSeparation, Rotate(toPlayer, spreadAngle));
 
         yield return new WaitUntil(() => bitsInFlight == 0);
     }
 
-    private void SpawnBit(Sprite glyph, Alien source, Vector3 position, Vector2 direction)
+    private void SpawnBit(string value, Sprite glyph, Alien source, Vector3 position, Vector2 direction)
     {
         BitProjectile bit = Instantiate(bitPrefab, position, Quaternion.identity);
-        bit.Launch(glyph, source.Color, direction, player, source.transform);
+        bit.Launch(value, glyph, source.Color, direction, player, source.transform);
         bit.Resolved += OnBitResolved;
     }
 
     private void OnBitResolved(BitProjectile bit, BitProjectile.Outcome outcome)
     {
         bit.Resolved -= OnBitResolved;
+        bool alienAlive = thrownAlien != null && !thrownAlien.IsDead;
+
+        // A parried bit that makes it home patches its bug right away, even if the
+        // other bit is still out (that one then just finds an empty slot).
+        if (outcome == BitProjectile.Outcome.Patched && alienAlive)
+        {
+            thrownAlien.Patch();
+            alienAlive = false;
+        }
         if (outcome == BitProjectile.Outcome.Returned) anyReturned = true;
         if (--bitsInFlight > 0) return;
 
-        if (anyReturned) thrownAlien.SetAway(false);
-        else thrownAlien.Kill();
+        if (alienAlive)
+        {
+            if (anyReturned) thrownAlien.SetAway(false);
+            else thrownAlien.Kill();
+        }
         thrownAlien = null;
     }
 
