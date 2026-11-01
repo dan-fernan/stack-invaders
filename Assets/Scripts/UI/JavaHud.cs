@@ -40,7 +40,7 @@ public class JavaHud : MonoBehaviour
     private void OnGcSeconds(int seconds)
     {
         if (message != null) return; // keep showing the collection message
-        gcText = $"GC {seconds}s";
+        gcText = seconds > 0 ? $"GC {seconds}s" : "GC ready";
         Redraw();
     }
 
@@ -56,7 +56,7 @@ public class JavaHud : MonoBehaviour
         Redraw();
         yield return new WaitForSeconds(collectedMessageTime);
         message = null;
-        gcText = "GC";
+        gcText = gc.IsReady ? "GC ready" : "GC";
         Redraw();
     }
 
