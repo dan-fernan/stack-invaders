@@ -12,16 +12,16 @@ public class LanguageOption
     [Tooltip("Short description shown in the menu.")]
     public string tagline = "slow start, strong finish";
 
-    [Header("Start page (name column ~10 characters, description ~40)")]
+    [Header("Start page (name + description should stay under ~57 characters)")]
     [Tooltip("Primary weapon name, e.g. \"coffee cup\".")]
     public string weaponName;
     [Tooltip("What the weapon does, e.g. \"splashes a bug and both neighbors\".")]
     public string weapon;
-    [Tooltip("Passive trait name, e.g. \"JIT\".")]
+    [Tooltip("Passive trait name, e.g. \"just-in-time compilation\".")]
     public string passiveName;
     [Tooltip("What the passive does.")]
     public string passive;
-    [Tooltip("Native ability name, e.g. \"GC\".")]
+    [Tooltip("Native ability name, e.g. \"garbage collector\".")]
     public string abilityName;
     [Tooltip("What the ability does.")]
     public string ability;

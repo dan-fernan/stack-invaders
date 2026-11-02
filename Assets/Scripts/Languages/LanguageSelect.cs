@@ -40,15 +40,18 @@ public class LanguageSelect : MonoBehaviour
         sb.Append(Color(textColor, header)).Append("\n\n");
 
         Heading(sb, "// CONTROLS");
-        Row(sb, "A / D", "move left / right");
-        Row(sb, "SPACE", "throw coffee (hold to keep throwing)");
-        Row(sb, "SHIFT", "breakpoint: parry an incoming shot back");
+        const int keyWidth = 7;
+        Row(sb, "A / D", "move left / right", keyWidth);
+        Row(sb, "SPACE", "throw coffee (hold to keep throwing)", keyWidth);
+        Row(sb, "SHIFT", "breakpoint: parry an incoming shot back", keyWidth);
         sb.Append('\n');
 
         Heading(sb, $"// {java.displayName.ToUpperInvariant()} RUNTIME  ({java.tagline})");
-        Row(sb, java.weaponName, java.weapon);
-        Row(sb, java.passiveName, java.passive);
-        Row(sb, java.abilityName, java.ability);
+        // Names are spelled out in full, so the column fits the longest one.
+        int nameWidth = Mathf.Max(java.weaponName.Length, java.passiveName.Length, java.abilityName.Length) + 2;
+        Row(sb, java.weaponName, java.weapon, nameWidth);
+        Row(sb, java.passiveName, java.passive, nameWidth);
+        Row(sb, java.abilityName, java.ability, nameWidth);
         sb.Append('\n');
 
         Heading(sb, "// GOAL");
@@ -61,8 +64,8 @@ public class LanguageSelect : MonoBehaviour
 
     private void Heading(StringBuilder sb, string text) => sb.Append(Color(headingColor, text)).Append('\n');
 
-    private void Row(StringBuilder sb, string key, string what) =>
-        sb.Append("  ").Append(Color(keyColor, key.PadRight(11))).Append(Color(textColor, what)).Append('\n');
+    private void Row(StringBuilder sb, string key, string what, int width) =>
+        sb.Append("  ").Append(Color(keyColor, key.PadRight(width))).Append(Color(textColor, what)).Append('\n');
 
     private void Line(StringBuilder sb, string text) => sb.Append("  ").Append(Color(textColor, text)).Append('\n');
 

@@ -1328,11 +1328,11 @@ MonoBehaviour:
   - displayName: Java
     tagline: slow start, strong finish
     weaponName: coffee cup
-    weapon: splashes the bug it hits + both neighbors
-    passiveName: JIT
-    passive: 'keep throwing: each cup comes out faster'
-    abilityName: GC
-    ability: every 10s, wipes all bits once one gets close
+    weapon: splashes a bug + both neighbors
+    passiveName: just-in-time compilation
+    passive: keep throwing to throw faster
+    abilityName: garbage collector
+    ability: every 10s, clears bits near you
     heldItem: {fileID: 0}
     behaviours:
     - {fileID: 982252454}
