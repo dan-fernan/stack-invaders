@@ -6,11 +6,11 @@ using UnityEngine;
 /// One call frame of the recursion boss: recurse(N). The root is recurse(maxDepth);
 /// every frame it calls sits one depth lower. Destroying a frame unwinds its whole
 /// subtree (handled by RecursionBoss). Clone bodies physically block player shots.
-/// A clone can also make a tail-call dive at the developer (shootable and parryable
-/// while diving), then fly back to its slot if it misses.
+/// A clone can also make a tail-call dive at the developer (shootable, not parryable),
+/// then fly back to its slot if it misses.
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer), typeof(Collider2D))]
-public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
+public class BossFrame : MonoBehaviour, IEnemyBody
 {
     [Tooltip("Shows N on the frame's body.")]
     [SerializeField] private SpriteRenderer label;
@@ -44,10 +44,8 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
     /// <summary>Out of formation on a tail-call dive (including the trip back).</summary>
     public bool IsDiving { get; private set; }
 
-    // IParryable: only a frame diving at the developer can be caught.
+    /// <summary>Diving at the developer (hurts on contact); harmless on the way back.</summary>
     public bool IsDangerous => IsDiving && !returning && !IsDead;
-    public Vector3 Position => transform.position;
-    public string ParryLabel => name;
 
     /// <summary>Which of its parent's call slots this frame occupies.</summary>
     public int SlotInParent { get; set; }
@@ -109,10 +107,7 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
         hitbox.enabled = false;
         Parent?.Children.Remove(this);
         Parent?.RefreshTint();
-        Parryables.Unregister(this);
     }
-
-    private void OnDestroy() => Parryables.Unregister(this);
 
     // ---------- Tail-call dive ----------
 
@@ -127,7 +122,6 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
     {
         IsDiving = true;
         returning = false;
-        Parryables.Register(this);
 
         Vector3 dir = ((Vector3)target - transform.position).normalized;
         while (OnScreen(cam))
@@ -137,7 +131,6 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
         }
 
         // Missed: re-enter from the top and fly back to the slot (harmless on the way).
-        Parryables.Unregister(this);
         returning = true;
         Vector3 c = cam.transform.position;
         float halfW = cam.orthographicSize * cam.aspect;
@@ -164,18 +157,9 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
             && Mathf.Abs(p.y - c.y) < cam.orthographicSize + 1f;
     }
 
-    /// <summary>Caught by the breakpoint parry mid-dive: the call is cut short (it dies and unwinds).</summary>
-    public bool StepInto()
-    {
-        if (!IsDangerous) return false;
-        TakeDamage(Hp);
-        return true;
-    }
-
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!IsDangerous) return;
-        if (other.TryGetComponent(out BreakpointParry parry) && parry.TryCatch(this)) return;
         if (other.TryGetComponent(out PlayerHealth health)) health.TakeHit();
     }
 

@@ -20,6 +20,8 @@ using UnityEngine;
 ///   3. (< 33%)   mutual recursion: the tree collapses and the root splits into ping and
 ///                pong, sharing the remaining HP. Kill one and the other calls twice as
 ///                fast; kill both to win. The beam fires in 4 columns.
+/// Parry: only the purple Fibonacci volleys and the gold memoized cache hits can be
+/// parried; split shots, return values and dives must be dodged or shot.
 /// Anti-spam: the smaller the tree, the faster it calls (it regrows when pruned), and a
 /// root with no calls to wait on is idle (dimmed) and can't be damaged.
 /// </summary>
@@ -533,6 +535,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
     {
         SplitShot value = Instantiate(shotPrefab, frame.transform.position, Quaternion.identity);
         value.Launch(frame, 0, Vector2.down, frame.Color, digits[Mathf.Clamp(frame.N, 0, digits.Length - 1)], returnValueSpeedScale);
+        value.MakeUnparryable();
     }
 
     private void FireSplitShot()
@@ -545,6 +548,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
         Vector3 muzzle = shooter.transform.position + Vector3.down * 0.4f;
         SplitShot shot = Instantiate(shotPrefab, muzzle, Quaternion.identity);
         shot.Launch(shooter, Mathf.Min(shooter.N, maxShotSplits), Vector2.down, shooter.Color);
+        shot.MakeUnparryable(); // only purple (Fibonacci) and gold (cache hit) shots can be parried
     }
 
     /// <summary>Fibonacci volley: 1, 1, 2, 3, 5, 8 shots in a fan, then the sequence repeats.</summary>

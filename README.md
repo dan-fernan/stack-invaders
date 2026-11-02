@@ -75,12 +75,14 @@ bullets hit anything that implements `IShootable`, so they handle bugs and bits 
 Every language gets the same native parry: the developer sets a breakpoint.
 
 1. **Shift** opens a 0.2 s window, and a red ● breakpoint dot appears beside the developer.
-2. Any enemy projectile (fleet bit or boss split shot) within 0.9 units, or touching the developer, during the window is **paused**: the
-   game freezes for 0.06 s and `● paused: 0` pops up.
+2. Any parryable projectile within 0.9 units, or touching the developer, during the window is
+   **paused**: the game freezes for 0.06 s and `● paused: 0` pops up. Parryable: fleet bits,
+   binary search shots, and, from the recursion boss, only the **purple** Fibonacci volleys and the
+   **gold** cache hits. Its blue split shots, return-value digits and dives can't be parried.
 3. **Reflect:** a caught fleet bit turns green and flies straight back to its slot, harmless and
    unshootable. It counts as returning home, so its bug **rebuilds**. The parry is purely
    defensive in the waves; it never kills.
-   A parried boss split shot flies back up and damages the first boss frame it touches.
+   A parried boss shot flies back up and hits the first boss part it touches.
 4. A successful window has no cooldown, so you can catch the 0 and then the 1. A window that
    catches nothing detaches the debugger for 1 s, shown by a gray dot.
 
@@ -170,8 +172,8 @@ escalates through three phases as its 70 HP drop.
   fast shots on them, so revisiting a spot gets punished. Cache hits can't be shot down (your
   shots pass straight through them); dodge them or parry them.
 - **Stack growth:** the tree pushes down one row every 9 s (up to 3 rows); an overflow resets it.
-- **Tail-call dives:** a clone marks a dotted path to you and dives along it. It's shootable and
-  parryable.
+- **Tail-call dives:** a clone marks a dotted path to you and dives along it. It can be shot, but
+  not parried.
 - **Three beam columns** at once, 4 units apart and centered on the boss, so there's always a
   3-unit safe lane between them.
 

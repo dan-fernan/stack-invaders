@@ -35,6 +35,15 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
     /// <summary>Makes this shot indestructible to player fire (it can still be dodged or parried).</summary>
     public void MakeUnshootable() => shootable = false;
 
+    private bool parryable = true;
+
+    /// <summary>The breakpoint parry ignores this shot: it must be dodged or shot down.</summary>
+    public void MakeUnparryable()
+    {
+        parryable = false;
+        Parryables.Unregister(this);
+    }
+
     public bool IsDangerous => !done && !parried;
     public Vector3 Position => transform.position;
     public string ParryLabel => parryLabel ?? (source != null ? source.name : "return value");
@@ -47,7 +56,10 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
         cam = Camera.main;
     }
 
-    private void OnEnable() => Parryables.Register(this);
+    private void OnEnable()
+    {
+        if (parryable) Parryables.Register(this);
+    }
     private void OnDisable() => Parryables.Unregister(this);
 
     /// <param name="from">The frame that fired it (parried shots fly back toward it).</param>
@@ -95,13 +107,16 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
             SplitShot child = Instantiate(this, transform.position, Quaternion.identity);
             child.Launch(source, splitsLeft - 1, Quaternion.Euler(0f, 0f, angle) * v, sprite.color,
                          speedScale: v.magnitude / speed);
+            // Runtime flags aren't copied by Instantiate: children inherit them explicitly.
+            if (!parryable) child.MakeUnparryable();
+            if (!shootable) child.MakeUnshootable();
         }
         Finish(false);
     }
 
     public bool StepInto()
     {
-        if (!IsDangerous) return false;
+        if (!IsDangerous || !parryable) return false;
         parried = true;
         splitsLeft = 0;
         sprite.color = parriedColor;
