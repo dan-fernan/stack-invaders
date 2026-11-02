@@ -44,7 +44,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
     [Header("Recursion")]
     [Tooltip("The root is recurse(maxDepth); recurse(0) frames can't call further.")]
     [SerializeField] private int maxDepth = 4;
-    [SerializeField] private int rootHp = 70;
+    [SerializeField] private int rootHp = 60;
     [SerializeField] private int cloneHp = 1;
     [Tooltip("HP of clones in the center column that shields the root.")]
     [SerializeField] private int shieldCloneHp = 2;
@@ -54,7 +54,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
     [SerializeField] private float minCallInterval = 0.3f;
     [Tooltip("More frames than this throws StackOverflowError.")]
     [SerializeField] private int stackLimit = 18;
-    [SerializeField] private float overflowStunTime = 4f;
+    [SerializeField] private float overflowStunTime = 5f;
     [Tooltip("After an overflow, frames at this depth or deeper unwind.")]
     [SerializeField] private int overflowUnwindDepth = 2;
     [Tooltip("Vertical distance between depth levels (0.875 = 14 pixels, keeps frames on the pixel grid).")]
@@ -71,7 +71,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
     [Header("Split shot")]
     [SerializeField] private SplitShot shotPrefab;
     [Tooltip("Seconds between shots at full HP / near death (hitting it makes it angrier).")]
-    [SerializeField] private Vector2 fireIntervalRange = new Vector2(1.5f, 0.7f);
+    [SerializeField] private Vector2 fireIntervalRange = new Vector2(1.8f, 1f);
     [Tooltip("Chance a root fires a given shot itself (its shots split the most).")]
     [Range(0f, 1f)] [SerializeField] private float rootFireChance = 0.35f;
     [Tooltip("Shots never split more than this many times (recurse(4) would be 16 bullets).")]
@@ -82,7 +82,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
     [SerializeField] private float returnValueSpeedScale = 0.75f;
 
     [Header("Fibonacci volley (all phases)")]
-    [SerializeField] private float fibInterval = 4f;
+    [SerializeField] private float fibInterval = 5f;
     [Tooltip("Total fan angle of a volley, in degrees.")]
     [SerializeField] private float fibSpread = 70f;
     [SerializeField] private float fibSpeedScale = 0.9f;
@@ -90,9 +90,9 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
     [Header("Stack-trace beam")]
     [SerializeField] private StackTraceBeam beamPrefab;
     [Tooltip("Seconds between beams at full HP / near death.")]
-    [SerializeField] private Vector2 beamIntervalRange = new Vector2(9f, 4f);
+    [SerializeField] private Vector2 beamIntervalRange = new Vector2(10f, 6f);
     [Tooltip("Beam columns fired at once in phases 1, 2 and 3.")]
-    [SerializeField] private int[] beamColumns = { 1, 3, 4 };
+    [SerializeField] private int[] beamColumns = { 1, 3, 3 };
     [Tooltip("Distance between beam columns (beams are 1 unit wide, so 4 leaves 3-unit safe lanes).")]
     [SerializeField] private float beamColumnSpacing = 4f;
 
@@ -100,8 +100,8 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
     [Tooltip("Seconds between caching the developer's position.")]
     [SerializeField] private float memoSampleInterval = 1.2f;
     [SerializeField] private int memoCacheSize = 3;
-    [SerializeField] private float memoInterval = 6f;
-    [SerializeField] private float memoTelegraphTime = 0.7f;
+    [SerializeField] private float memoInterval = 8f;
+    [SerializeField] private float memoTelegraphTime = 0.9f;
     [SerializeField] private float memoSpeedScale = 1.6f;
 
     [Header("Stack growth (phase 2+)")]
@@ -111,8 +111,8 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
 
     [Header("Tail-call dive (phase 2+)")]
     [Tooltip("Seconds between dives in phase 2 / near death.")]
-    [SerializeField] private Vector2 diveIntervalRange = new Vector2(6f, 3f);
-    [SerializeField] private float diveTelegraphTime = 0.6f;
+    [SerializeField] private Vector2 diveIntervalRange = new Vector2(8f, 5f);
+    [SerializeField] private float diveTelegraphTime = 0.8f;
     [SerializeField] private float diveSpeed = 9f;
     [SerializeField] private float diveReturnSpeed = 8f;
     [SerializeField] private Sprite telegraphDot;
@@ -125,7 +125,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
     [SerializeField] private float mutualRootX = 4.75f;
     [SerializeField] private float splitTelegraphTime = 1f;
     [Tooltip("Call-interval multiplier for the survivor once one of ping/pong dies.")]
-    [SerializeField] private float survivorCallMultiplier = 0.5f;
+    [SerializeField] private float survivorCallMultiplier = 0.7f;
 
     [Header("Movement")]
     [SerializeField] private float driftAmplitude = 1f;
@@ -179,7 +179,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
             if (Phase < 3) return $"recurse({maxDepth})";
             if (splitting) return "mutual recursion...";
             if (roots.Count == 2) return "ping <-> pong";
-            return roots.Count == 1 ? $"{RootName(roots[0]).Split('(')[0]}() alone: calls x2" : "";
+            return roots.Count == 1 ? $"{RootName(roots[0]).Split('(')[0]}() alone: calls faster" : "";
         }
     }
 
@@ -427,7 +427,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
             if (roots.Count == 0) { lastRoot = true; defeated = true; }
             else
             {
-                // Mutual recursion: the survivor calls twice as fast.
+                // Mutual recursion: the survivor calls faster.
                 callMultiplier = survivorCallMultiplier;
                 LabelChanged?.Invoke(Label);
             }

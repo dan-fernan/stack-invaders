@@ -183,7 +183,7 @@ Comes after wave 2. A bug hides somewhere in a sorted 16-cell array, and every c
 
 ### Final boss: `recurse(4)`
 
-Comes after wave 3, with 70 HP and three phases.
+Comes after wave 3, with 60 HP and three phases.
 
 **The whole fight**
 - **It calls itself.** The boss keeps spawning copies of itself one level deeper, down to the base
@@ -196,7 +196,7 @@ Comes after wave 3, with 70 HP and three phases.
   the faster it calls, so clearing it doesn't buy you much time.
 - **Unwinding.** Destroying a frame unwinds everything below it, one level at a time, and each
   frame "returns" its number as a falling digit.
-- **Stack overflow.** More than 18 frames throws `StackOverflowError`: the boss freezes for 4 s,
+- **Stack overflow.** More than 18 frames throws `StackOverflowError`: the boss freezes for 5 s,
   then the deep frames unwind.
 - **Attacks:** shots that split in two up to three times; Fibonacci volleys (1, 1, 2, 3, 5, 8
   purple shots) that can **only be parried**, not shot; and stack-trace beams down marked columns.
@@ -210,8 +210,8 @@ Comes after wave 3, with 70 HP and three phases.
 
 **Phase 3 (below 33%): mutual recursion.** The root splits into `ping(3)` and `pong(3)`, which
 share what's left of its health. The health bar splits too, with a label over each half
-(`ping 22/35 HP`, `pong 35/35 HP`, or `pong returned` once it's beaten). Beat one and the other
-calls twice as fast; beat both to win. Beams fire in four columns.
+(`ping 18/30 HP`, `pong 30/30 HP`, or `pong returned` once it's beaten). Beat one and the other
+calls faster; beat both to win. Beams keep firing in three columns.
 
 ## Code issues in the class project
 
