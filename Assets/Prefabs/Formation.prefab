@@ -119,8 +119,9 @@ MonoBehaviour:
   zeroSprite: {fileID: 21300000, guid: 2d1b177a9c5134fa8a5b5c4226e1ae79, type: 3}
   oneSprite: {fileID: 21300000, guid: 6912cd62b1a6b4d24a09e751918aabd4, type: 3}
   firstThrowDelay: 3
-  fullFleetInterval: {x: 1.5, y: 2.5}
-  lastBugInterval: {x: 0.5, y: 1}
+  fullFleetInterval: {x: 1, y: 1.8}
+  lastBugInterval: {x: 0.35, y: 0.7}
   telegraphTime: 0.5
+  maxThrowsInFlight: 2
   spreadAngle: 35
   bitSeparation: 0.2

@@ -49,7 +49,7 @@ instructor's code and documenting how this project handles each one instead (see
 Bugs are code that doesn't do what it's supposed to, so the fleet's attack is a bug being
 recompiled into raw bits and thrown at the developer.
 
-1. **Pickup:** 1.5–2.5 s after the previous throw ends (dropping to 0.5–1 s as the fleet shrinks), a bug with a
+1. **Pickup:** 1–1.8 s after the previous throw (dropping to 0.35–0.7 s as the fleet shrinks), a bug with a
    living neighbor is picked. The neighbor flashes white and the bug wobbles for 0.5 s as a warning.
 2. **Throw:** the bug splits into a **0** and a **1** in its own color, launched 35° to either
    side of a straight line to the ship.
@@ -61,7 +61,7 @@ recompiled into raw bits and thrown at the developer.
    resolved, the bug **rebuilds if at least one bit made it home**. Otherwise (for example, both
    were shot) the bug dies.
 
-Each formation has its own `FleetThrower`, with only one of its throws in the air at a time, so wave 3 can have three throws airborne at once. Back formations throw less often (an interval multiplier per formation). Implementation: `FleetThrower` (timing, picking a bug,
+Each formation has its own `FleetThrower`, with up to 2 of its throws in the air at once, so wave 3 can have six throws airborne. Back formations throw less often (an interval multiplier per formation). Implementation: `FleetThrower` (timing, picking a bug,
 deciding the outcome), `BitProjectile` (homing, returning, hits), `AlienFormation.TryPickThrow()`
 (finding a neighbor on the grid), and `Alien.SetAway()`, `Flash()` and `Wobble()`. Player
 bullets hit anything that implements `IShootable`, so they handle bugs and bits the same way.
@@ -73,15 +73,15 @@ Every language gets the same native parry: the developer sets a breakpoint.
 1. **Shift** opens a 0.2 s window, and a red ● breakpoint dot appears beside the developer.
 2. Any enemy projectile (fleet bit or boss split shot) within 0.9 units, or touching the developer, during the window is **paused**: the
    game freezes for 0.06 s and `● paused: 0` pops up.
-3. **Step Into:** the caught bit turns developer-green, flies back to its slot and **patches**
-   the bug it came from, which is squashed in its slot. A patched bit can't hurt you or be shot.
+3. **Reflect:** a caught fleet bit turns green and flies straight back to its slot, harmless and
+   unshootable. It counts as returning home, so its bug **rebuilds**. The parry is purely
+   defensive in the waves; it never kills.
    A parried boss split shot flies back up and damages the first boss frame it touches.
 4. A successful window has no cooldown, so you can catch the 0 and then the 1. A window that
    catches nothing detaches the debugger for 1 s, shown by a gray dot.
 
-This rewards timing over constant movement, and turns the fleet's attack into offense without
-making any weapon stronger. Implementation: `BreakpointParry`, `BitProjectile.StepInto()`,
-`Alien.Patch()`, and the pop-up text in `FloatingText`. The spec's *Breakpoint* powerup (freeze
+This rewards timing over constant movement without adding damage: in the waves it only defends. Implementation: `BreakpointParry`, `BitProjectile.StepInto()`,
+and the pop-up text in `FloatingText`. The spec's *Breakpoint* powerup (freeze
 all enemies) will need a new name.
 
 ### Miniboss: binary search

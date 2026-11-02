@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// A "0" or "1" that a thrown alien was molded into.
@@ -8,16 +9,16 @@ using UnityEngine;
 ///   Coasting  – once it drops past the player's row it stops steering and flies on.
 ///   Returning – after leaving the screen it re-enters from the top and flies back to
 ///               its alien's slot (harmless to the player, still shootable).
-///   Patching  – caught by the player's breakpoint parry: flies back to its slot fast and
-///               kills the bug it came from (harmless, can't be shot).
+///   Reflected – caught by the player's breakpoint parry: flies straight back to its slot
+///               (harmless, can't be shot) and counts as returned, so its bug rebuilds.
 /// Reports exactly one Outcome, then destroys itself.
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D), typeof(SpriteRenderer))]
 public class BitProjectile : MonoBehaviour, IShootable, IParryable
 {
-    public enum Outcome { Returned, HitPlayer, Shot, Patched }
+    public enum Outcome { Returned, HitPlayer, Shot }
 
-    private enum State { Homing, Coasting, Returning, Patching }
+    private enum State { Homing, Coasting, Returning, Reflected }
 
     [SerializeField] private float homingSpeed = 6f;
     [Tooltip("Max degrees per second the bit can turn toward the player. Higher = harder to dodge.")]
@@ -26,9 +27,11 @@ public class BitProjectile : MonoBehaviour, IShootable, IParryable
     [SerializeField] private float homingCutoff = 0.5f;
     [SerializeField] private float returnSpeed = 7f;
     [Tooltip("Speed when flying home after being parried.")]
-    [SerializeField] private float patchSpeed = 12f;
-    [Tooltip("Tint once parried: the bit now belongs to the developer.")]
-    [SerializeField] private Color patchColor = new Color32(0x39, 0xd3, 0x53, 0xff);
+    [FormerlySerializedAs("patchSpeed")]
+    [SerializeField] private float reflectSpeed = 12f;
+    [Tooltip("Tint once parried, so it reads as deflected.")]
+    [FormerlySerializedAs("patchColor")]
+    [SerializeField] private Color reflectColor = new Color32(0x39, 0xd3, 0x53, 0xff);
     [SerializeField] private float offscreenMargin = 0.5f;
     [Tooltip("Played when the bit is shot or hits the ship.")]
     [SerializeField] private OneShotAnimation popEffect;
@@ -87,14 +90,14 @@ public class BitProjectile : MonoBehaviour, IShootable, IParryable
     }
 
     /// <summary>
-    /// Caught by the breakpoint parry: turn developer-green and fly home to patch the bug.
+    /// Caught by the breakpoint parry: turn green and fly straight home, harmless; its bug rebuilds.
     /// Returns false if the bit was no longer a threat.
     /// </summary>
     public bool StepInto()
     {
         if (!IsDangerous) return false;
-        GetComponent<SpriteRenderer>().color = patchColor;
-        state = State.Patching;
+        GetComponent<SpriteRenderer>().color = reflectColor;
+        state = State.Reflected;
         return true;
     }
 
@@ -128,8 +131,8 @@ public class BitProjectile : MonoBehaviour, IShootable, IParryable
                 FlyHome(pos, returnSpeed, Outcome.Returned);
                 return;
 
-            case State.Patching:
-                FlyHome(pos, patchSpeed, Outcome.Patched);
+            case State.Reflected:
+                FlyHome(pos, reflectSpeed, Outcome.Returned);
                 return;
         }
 
@@ -191,7 +194,7 @@ public class BitProjectile : MonoBehaviour, IShootable, IParryable
 
     public void OnShot()
     {
-        if (state == State.Patching) return; // already the developer's
+        if (state == State.Reflected) return; // deflected, on its way home
         Resolve(Outcome.Shot);
     }
 
@@ -199,7 +202,7 @@ public class BitProjectile : MonoBehaviour, IShootable, IParryable
     {
         if (resolved) return;
         resolved = true;
-        if (outcome != Outcome.Returned && outcome != Outcome.Patched)
+        if (outcome != Outcome.Returned)
             popEffect.Spawn(transform.position, GetComponent<SpriteRenderer>().color);
         Resolved?.Invoke(this, outcome);
         Destroy(gameObject);

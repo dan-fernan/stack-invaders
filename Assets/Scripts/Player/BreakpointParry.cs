@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 /// <summary>
 /// The developer's native parry: set a breakpoint (Shift) and any enemy projectile
 /// (IParryable) that reaches you during the short window is paused, then "stepped into":
-/// a fleet bit flies back and patches (kills) its bug; a boss shot flies back and hits a frame.
+/// a fleet bit is reflected back home (harmless; its bug rebuilds); a boss shot flies back and hits a frame.
 /// A successful parry has no cooldown, so the 0 and the 1 can both be caught;
 /// a whiffed one detaches the debugger for a moment.
 /// </summary>

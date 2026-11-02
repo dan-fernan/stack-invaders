@@ -81,17 +81,6 @@ public class Alien : MonoBehaviour, IShootable
         Destroy(gameObject);
     }
 
-    /// <summary>
-    /// A parried bit came home: the bug is fixed (killed) and squashed in its slot,
-    /// even though it was away.
-    /// </summary>
-    public void Patch()
-    {
-        if (IsDead) return;
-        squashEffect.Spawn(transform.position, Color);
-        Kill();
-    }
-
     /// <summary>Hide the alien while its bits are in flight, or bring it back.</summary>
     public void SetAway(bool away)
     {
