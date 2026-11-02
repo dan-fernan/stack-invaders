@@ -14,6 +14,14 @@ public class LanguageOption
     [Tooltip("Locked languages show as 'coming soon' and can't be picked.")]
     public bool locked;
 
+    [Header("Start screen description (keep each line short: the screen is ~45 characters wide)")]
+    [Tooltip("Primary weapon, e.g. \"coffee cup: splash hits 3 bugs\".")]
+    public string weapon;
+    [Tooltip("Passive trait, e.g. \"JIT: hold fire to throw faster\".")]
+    public string passive;
+    [Tooltip("Native ability, e.g. \"GC: auto-frees bits near you\".")]
+    public string ability;
+
     [Tooltip("Separate sprite for the item the developer holds. Leave empty if the item is drawn into the developer's frames (Java's mug).")]
     public Sprite heldItem;
     [Tooltip("Weapon and ability scripts enabled only while playing this language.")]

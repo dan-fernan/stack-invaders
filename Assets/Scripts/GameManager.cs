@@ -71,6 +71,7 @@ public class GameManager : MonoBehaviour
     private State state = State.Title;
     private Coroutine typing;
     private string fullTitleText;
+    private string titleHeader;
     private LanguageOption language;
     private int stageIndex;
     private GameObject bossObject;
@@ -111,6 +112,10 @@ public class GameManager : MonoBehaviour
             "Compiling...\n" +
             "  [####################] 100%\n" +
             $"Build succeeded with {waveManager.TotalBugs} warnings (bugs) and {BossCount} errors (bosses)\n\n";
+        // Once the compile log has typed out, it collapses to this header so the
+        // language menu and its description fit on the 180px-tall screen.
+        titleHeader =
+            $"Build succeeded: {waveManager.TotalBugs} warnings (bugs), {BossCount} errors (bosses)\n\n";
         ShowScreen("", titleColor);
         typing = StartCoroutine(TypeOut(fullTitleText));
     }
@@ -149,7 +154,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void ShowTitleMenu() => screenText.text = fullTitleText + languageSelect.Render();
+    private void ShowTitleMenu() => screenText.text = titleHeader + languageSelect.Render();
 
     private void StartGame(LanguageOption chosen)
     {

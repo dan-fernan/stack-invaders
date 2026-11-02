@@ -9,6 +9,8 @@ using UnityEngine.InputSystem;
 public class LanguageSelect : MonoBehaviour
 {
     [SerializeField] private LanguageOption[] options;
+    [Tooltip("Shown under every language's description.")]
+    [SerializeField] private string sharedAbility = "all languages: SHIFT = breakpoint parry";
 
     public LanguageOption[] Options => options;
 
@@ -69,7 +71,7 @@ public class LanguageSelect : MonoBehaviour
 
     public string Render()
     {
-        var sb = new StringBuilder("Select a language:\n\n");
+        var sb = new StringBuilder("Select a language:\n");
         for (int i = 0; i < options.Length; i++)
         {
             LanguageOption o = options[i];
@@ -79,7 +81,25 @@ public class LanguageSelect : MonoBehaviour
             sb.Append('\n');
         }
         sb.Append('\n');
+        AppendDescription(sb, options[selected]);
+        sb.Append('\n');
         sb.Append(error ?? "W/S to choose, SPACE to run");
         return sb.ToString();
+    }
+
+    /// <summary>What the highlighted language plays like: weapon, passive, ability.</summary>
+    private void AppendDescription(StringBuilder sb, LanguageOption o)
+    {
+        if (o.locked)
+        {
+            sb.Append($"  {o.displayName}: not implemented yet\n\n\n");
+        }
+        else
+        {
+            sb.Append($"  weapon   {o.weapon}\n");
+            sb.Append($"  passive  {o.passive}\n");
+            sb.Append($"  ability  {o.ability}\n");
+        }
+        sb.Append($"  {sharedAbility}\n");
     }
 }
