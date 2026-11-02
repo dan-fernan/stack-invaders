@@ -165,8 +165,7 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
     {
         if (!IsDangerous) return;
         if (other.TryGetComponent(out BreakpointParry parry) && parry.TryCatch(this)) return;
-        if (other.TryGetComponent(out PlayerClone clone)) clone.TakeHit();
-        else if (other.TryGetComponent(out PlayerHealth health)) health.TakeHit();
+        if (other.TryGetComponent(out PlayerHealth health)) health.TakeHit();
     }
 
     /// <summary>Blink white (used on hits and on stack overflow).</summary>

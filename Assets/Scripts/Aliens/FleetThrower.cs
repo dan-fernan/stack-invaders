@@ -98,8 +98,7 @@ public class FleetThrower : MonoBehaviour
         // The player may have shot the target during the telegraph.
         if (target == null || !target.IsPresent) yield break;
 
-        // Load balancing: each throw targets a random living instance (the developer or a clone).
-        Transform aim = PickInstance();
+        Transform aim = player;
         Vector3 origin = target.transform.position;
         Vector2 toAim = ((Vector2)(aim.position - origin)).normalized;
         target.SetAway(true);
@@ -128,15 +127,6 @@ public class FleetThrower : MonoBehaviour
         if (alien == null || alien.IsDead) return;
         if (thrown.anyReturned) alien.SetAway(false);
         else alien.Kill();
-    }
-
-    private Transform PickInstance()
-    {
-        int pick = Random.Range(0, PlayerClone.Alive.Count + 1);
-        if (pick == 0) return player;
-        foreach (PlayerClone clone in PlayerClone.Alive)
-            if (--pick == 0) return clone.transform;
-        return player;
     }
 
     private static Vector2 Rotate(Vector2 v, float degrees) => Quaternion.Euler(0f, 0f, degrees) * v;

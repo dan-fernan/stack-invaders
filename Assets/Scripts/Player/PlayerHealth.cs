@@ -47,7 +47,7 @@ public class PlayerHealth : MonoBehaviour
         Changed?.Invoke(Hearts, maxHearts);
     }
 
-    /// <summary>Vertical scaling: one more max heart, which arrives full.</summary>
+    /// <summary>Compute Upgrade boon: one more max heart, which arrives full.</summary>
     public void AddMaxHeart()
     {
         maxHearts++;

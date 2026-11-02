@@ -188,12 +188,6 @@ public class BitProjectile : MonoBehaviour, IShootable, IParryable
     {
         if (!IsDangerous) return; // harmless on the way home
         if (other.TryGetComponent(out BreakpointParry parry) && parry.TryCatch(this)) return;
-        if (other.TryGetComponent(out PlayerClone clone) && clone.IsAlive)
-        {
-            clone.TakeHit(); // a horizontal-scaling instance takes the hit
-            Resolve(Outcome.HitPlayer);
-            return;
-        }
         if (other.TryGetComponent(out PlayerHealth health) && health.TakeHit())
             Resolve(Outcome.HitPlayer);
     }

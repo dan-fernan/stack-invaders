@@ -70,8 +70,7 @@ public class StackTraceBeam : MonoBehaviour
     private void OnTriggerStay2D(Collider2D other)
     {
         // PlayerHealth's invulnerability window keeps this to one heart per beam.
-        if (!hitbox.enabled) return;
-        if (other.TryGetComponent(out PlayerClone clone)) clone.TakeHit();
-        else if (other.TryGetComponent(out PlayerHealth health)) health.TakeHit();
+        if (hitbox.enabled && other.TryGetComponent(out PlayerHealth health))
+            health.TakeHit();
     }
 }

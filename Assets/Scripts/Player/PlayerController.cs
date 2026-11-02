@@ -65,7 +65,6 @@ public class PlayerController : MonoBehaviour
 
     /// <summary>
     /// Clamps a body of the given half-width to the screen and any boss movement limits.
-    /// Horizontal-scaling clones use this too, so they never leave the screen or pass a wall.
     /// </summary>
     public float ClampX(float x, float halfShipWidth)
     {

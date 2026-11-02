@@ -965,7 +965,6 @@ MonoBehaviour:
   bossHud: {fileID: 599218881}
   waveHud: {fileID: 29845577}
   boons: {fileID: 958215715}
-  clones: {fileID: 982252458}
   playerHealth: {fileID: 982252450}
   playerSprite: {fileID: 982252447}
   gameplayBehaviours:
@@ -1190,18 +1189,12 @@ MonoBehaviour:
   offerSize: 3
   hudLabel: {fileID: 3303285}
   universalBoons:
-  - id: vertical
-    displayName: Vertical Scaling
-    tag: VS
+  - id: compute
+    displayName: Compute Upgrade
+    tag: CU
     levelDescriptions:
     - +1 max heart (arrives full)
     - +1 more max heart
-  - id: horizontal
-    displayName: Horizontal Scaling
-    tag: HS
-    levelDescriptions:
-    - 'a shadow clone: 1 heart, half-size cups'
-    - a second clone on your other side
   universalReceiver: {fileID: 958215717}
 --- !u!4 &958215716
 Transform:
@@ -1231,7 +1224,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UniversalBoons
   health: {fileID: 982252450}
-  clones: {fileID: 982252458}
 --- !u!1 &982252445
 GameObject:
   m_ObjectHideFlags: 0
@@ -1251,7 +1243,6 @@ GameObject:
   - component: {fileID: 982252455}
   - component: {fileID: 982252456}
   - component: {fileID: 982252457}
-  - component: {fileID: 982252458}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -1474,7 +1465,6 @@ MonoBehaviour:
   coolDelay: 0.6
   coolRate: 0.7
   heatSegments: 10
-  cloneSplashScale: 0.5
 --- !u!114 &982252455
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1552,26 +1542,6 @@ MonoBehaviour:
   - 0.35
   - 0.35
   - 0.7
---- !u!114 &982252458
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 982252445}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 533702b8faa40466a9c467717e102b6d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CloneManager
-  clonePrefab: {fileID: 8161752103091172354, guid: 06f33f81343c94f6f958d88138622225, type: 3}
-  developer: {fileID: 982252448}
-  developerSprite: {fileID: 982252447}
-  developerMovement: {fileID: 982252446}
-  offsets:
-  - -1.5
-  - 1.5
-  throwOffset: {x: 0.3125, y: 0.5, z: 0}
 --- !u!1 &1074964047
 GameObject:
   m_ObjectHideFlags: 0

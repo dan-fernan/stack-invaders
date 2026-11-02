@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 /// consecutive throw raises "heat" so the next one comes sooner, like the JVM
 /// optimizing hot code. Stop throwing and the JIT cools back down.
 /// </summary>
-public class JavaWeapon : MonoBehaviour, IStageReset, ICloneableAttack
+public class JavaWeapon : MonoBehaviour, IStageReset
 {
     [SerializeField] private CoffeeCup cupPrefab;
     [Tooltip("Where cups are thrown from (the developer's throwing hand).")]
@@ -38,12 +38,6 @@ public class JavaWeapon : MonoBehaviour, IStageReset, ICloneableAttack
     /// <summary>Maven boon: chained splashes per cup (0 = none) and their radius.</summary>
     public int ChainCount { get; set; }
     public float ChainRadius { get; set; } = 0.35f;
-
-    /// <summary>Raised on every throw (horizontal-scaling clones copy it).</summary>
-    public event Action Attacked;
-
-    [Tooltip("Splash size of the cups clones throw, relative to a normal cup.")]
-    [SerializeField] private float cloneSplashScale = 0.5f;
 
     /// <summary>Raised only when the visible heat bar changes (filled segments, total).</summary>
     public event Action<int, int> HeatSegmentsChanged;
@@ -86,17 +80,9 @@ public class JavaWeapon : MonoBehaviour, IStageReset, ICloneableAttack
         CoffeeCup cup = Instantiate(cupPrefab, throwPoint.position, Quaternion.identity);
         cup.SetChain(ChainCount, ChainRadius);
         if (animator != null) animator.PlayThrow();
-        Attacked?.Invoke();
         nextThrowTime = Time.time + Mathf.Lerp(coldCooldown, hotCooldown, Heat);
         lastThrowTime = Time.time;
         Heat = Mathf.Min(1f, Heat + HeatGainMultiplier / throwsToWarm);
-    }
-
-    /// <summary>A clone's throw: a smaller splash and no Maven chain.</summary>
-    public void FireCloneShot(Vector3 position)
-    {
-        CoffeeCup cup = Instantiate(cupPrefab, position, Quaternion.identity);
-        cup.SetSplashScale(cloneSplashScale);
     }
 
     private void PublishHeat(bool force)

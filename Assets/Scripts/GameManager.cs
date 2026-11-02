@@ -47,8 +47,6 @@ public class GameManager : MonoBehaviour
 
     [Header("Boons")]
     [SerializeField] private BoonManager boons;
-    [Tooltip("Horizontal-scaling clones (copy the chosen language's attack).")]
-    [SerializeField] private CloneManager clones;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private SpriteRenderer playerSprite;
     [Tooltip("Gameplay scripts that only run while Playing.")]
@@ -179,8 +177,6 @@ public class GameManager : MonoBehaviour
         if (chosen.hud != null) chosen.hud.SetActive(true);
 
         boons.SetLanguage(chosen);
-        foreach (MonoBehaviour behaviour in chosen.behaviours)
-            if (behaviour is ICloneableAttack attack) clones.SetWeapon(attack);
         boons.BeginWave(stages[stageIndex].waveIndex);
 
         state = State.Playing;
@@ -307,11 +303,10 @@ public class GameManager : MonoBehaviour
         ResetForStage();
     }
 
-    /// <summary>Fresh per-stage state: JIT heat, GC charge, JUnit shields, clones.</summary>
+    /// <summary>Fresh per-stage state: JIT heat, GC charge, JUnit shields.</summary>
     private void ResetForStage()
     {
         playerHealth.RefillShields();
-        clones.RespawnAll();
         if (language == null) return;
         foreach (MonoBehaviour behaviour in language.behaviours)
             if (behaviour is IStageReset reset) reset.ResetForStage();

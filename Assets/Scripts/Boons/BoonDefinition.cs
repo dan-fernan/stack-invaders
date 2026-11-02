@@ -28,16 +28,6 @@ public interface IBoonReceiver
 }
 
 /// <summary>
-/// A language weapon that horizontal-scaling clones can copy: it reports each attack,
-/// and can fire a weaker version of it from another position.
-/// </summary>
-public interface ICloneableAttack
-{
-    event Action Attacked;
-    void FireCloneShot(Vector3 position);
-}
-
-/// <summary>
 /// Scripts with state that should start fresh at the beginning of each stage
 /// (rather than every time gameplay is paused and resumed).
 /// </summary>

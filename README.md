@@ -208,19 +208,14 @@ picking one you already have levels it up.
 
 | Universal boon (every language) | Lv 1 | Lv 2 |
 | --- | --- | --- |
-| **Vertical Scaling**: a bigger machine | +1 max heart (arrives full) | +1 more (5 hearts total) |
-| **Horizontal Scaling**: more instances | A translucent shadow clone on your left: copies your animation, throws half-size cups (no Maven chain) whenever you attack, has 1 heart | A second clone on your right |
+| **Compute Upgrade**: vertical scaling, a bigger machine | +1 max heart (arrives full) | +1 more (5 hearts total) |
 
-Horizontal scaling also brings **load balancing**: each fleet throw targets a random living
-instance (you or a clone), so clones draw fire. Projectiles, the beam and diving frames destroy a
-clone in one hit, and destroyed clones come back at the start of the next stage. Clones follow
-your movement at fixed offsets, clamped to the screen and the binary search walls. With Java's
-three boons plus these two, each disk offers a random 3 of 5.
+With Java's three boons plus Compute Upgrade, each disk offers a random 3 of 4.
 
 JIT heat, the GC charge and JUnit's tests reset at the start of each stage, not when the game
 pauses for an install. Implementation: `BoonManager`, `FloppyDisk`, `BoonDefinition` (a language's
-pool lives on its `LanguageOption`; universal boons on the `BoonManager`), `JavaBoons`, `ChainSplash` (Maven),
-`UniversalBoons`, `CloneManager` and `PlayerClone`.
+pool lives on its `LanguageOption`; universal boons on the `BoonManager`), `JavaBoons`, `ChainSplash` (Maven)
+and `UniversalBoons`.
 
 ## Code issues in the instructor's project
 
