@@ -248,7 +248,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
   m_AnchoredPosition: {x: 1, y: 0}
-  m_SizeDelta: {x: 160, y: 4}
+  m_SizeDelta: {x: 140, y: 4}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &172964619
 MonoBehaviour:
@@ -614,7 +614,7 @@ MonoBehaviour:
   fill: {fileID: 1917919018}
   fillImage: {fileID: 1917919019}
   trail: {fileID: 172964618}
-  barWidth: 160
+  barWidth: 140
   fillColor: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
   stunnedColor: {r: 0.54509807, g: 0.5803922, b: 0.61960787, a: 1}
   flashTime: 0.06
@@ -1294,6 +1294,85 @@ MonoBehaviour:
   cooldownColor: {r: 0.28235295, g: 0.30980393, b: 0.34509805, a: 1}
   popupPrefab: {fileID: 3319601294227622659, guid: 75970f8311ff6446bb7de064baa91b0c, type: 3}
   popupCanvas: {fileID: 948229221}
+--- !u!1 &1074964047
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1074964050}
+  - component: {fileID: 1074964049}
+  - component: {fileID: 1074964048}
+  m_Layer: 0
+  m_Name: GcLabel
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1074964048
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1074964047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f7201a12d95ffc409449d95f23cf332, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Text
+  m_Material: {fileID: 0}
+  m_Color: {r: 0.7529412, g: 0.5411765, b: 0.30980393, a: 1}
+  m_RaycastTarget: 0
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_FontData:
+    m_Font: {fileID: 12800000, guid: 78dda392657c94e9a823f70accfe6804, type: 3}
+    m_FontSize: 12
+    m_FontStyle: 0
+    m_BestFit: 0
+    m_MinSize: 10
+    m_MaxSize: 40
+    m_Alignment: 2
+    m_AlignByGeometry: 0
+    m_RichText: 1
+    m_HorizontalOverflow: 1
+    m_VerticalOverflow: 0
+    m_LineSpacing: 1
+  m_Text: GC 10s
+--- !u!222 &1074964049
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1074964047}
+  m_CullTransparentMesh: 1
+--- !u!224 &1074964050
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1074964047}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1939794975}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 1, y: 0}
+  m_AnchorMax: {x: 1, y: 0}
+  m_AnchoredPosition: {x: 0, y: 1}
+  m_SizeDelta: {x: 80, y: 12}
+  m_Pivot: {x: 1, y: 1}
 --- !u!1 &1288028827
 GameObject:
   m_ObjectHideFlags: 0
@@ -1426,7 +1505,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 162, y: 6}
+  m_SizeDelta: {x: 142, y: 6}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &1507017920
 MonoBehaviour:
@@ -1580,7 +1659,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0.5}
   m_AnchorMax: {x: 0, y: 0.5}
   m_AnchoredPosition: {x: 1, y: 0}
-  m_SizeDelta: {x: 160, y: 4}
+  m_SizeDelta: {x: 140, y: 4}
   m_Pivot: {x: 0, y: 0.5}
 --- !u!114 &1917919019
 MonoBehaviour:
@@ -1745,7 +1824,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JavaHud
   weapon: {fileID: 982252454}
   gc: {fileID: 982252453}
-  label: {fileID: 1939794973}
+  jitLabel: {fileID: 1939794973}
+  gcLabel: {fileID: 1074964048}
   collectedMessageTime: 1
 --- !u!114 &1939794973
 MonoBehaviour:
@@ -1780,7 +1860,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 1
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: JIT [----------]  GC 10s
+  m_Text: 'JIT [----------]'
 --- !u!222 &1939794974
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1800,13 +1880,14 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1074964050}
   m_Father: {fileID: 948229221}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: -4, y: -1}
-  m_SizeDelta: {x: 200, y: 12}
+  m_SizeDelta: {x: 80, y: 12}
   m_Pivot: {x: 1, y: 1}
 --- !u!1 &1946274185
 GameObject:
