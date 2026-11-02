@@ -119,8 +119,11 @@ Between waves 2 and 3. A bug hides in one cell of a 16-cell sorted array, and ev
   the hints clear. Running out also makes every live cell fire at once. Live cells drop shots
   meanwhile, faster as the boss weakens.
 - **Parrying is a free comparison.** A parried shot flies back up into the cell above you and
-  reveals its hint, or the bug, without spending a comparison, triggering the off-by-one shots,
-  or counting toward the taunt. Stand under the cell you want tested and parry its shot.
+  reveals its hint without spending a comparison, triggering the off-by-one shots, or counting
+  toward the taunt. Stand under the cell you want tested and parry its shot. If it lands on the
+  bug's cell, it only **reveals** the bug (`bug at arr[11]: shoot it!`): every other cell is
+  eliminated, but there's no damage until you shoot that cell yourself. The parry saved a
+  comparison, so that find hits harder.
 - **Weapons:** every shot that reaches a cell is a comparison, so a warmed-up Java spray burns
   the budget and trips the taunt. This fight rewards a few deliberate throws, and shooting down
   incoming shots works too.

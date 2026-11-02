@@ -22,6 +22,8 @@ using UnityEngine;
 ///         Careful play never hits this; spamming throws (or Maven spam) does.
 ///   - Parry: a parried shot that flies back into a cell is a free comparison (no budget,
 ///     no off-by-one, no taunt), so standing under a cell and parrying its shot tests it.
+///     If it lands on the bug's cell it only reveals it (everything else is eliminated);
+///     the player still has to shoot it to make the find.
 ///   - Maven chains: a chained splash on a cell is a real comparison (budget, off-by-one),
 ///     but the cell isn't the player's choice, so it never counts toward the taunt.
 ///   - Running out of comparisons re-sorts the array (the bug moves, hints clear, walls
@@ -220,8 +222,16 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     {
         if (defeated || resorting || !cell.IsLive) return;
         int i = cell.Index;
-        probed[i] = true;
         bool free = source == ProbeSource.Parried;
+
+        // A parried shot on the bug's cell reveals it but doesn't find it: no damage, no
+        // re-sort. The cell stays live so the player can shoot it themselves.
+        if (free && i == target)
+        {
+            Reveal(cell);
+            return;
+        }
+        probed[i] = true;
 
         if (!free)
         {
@@ -262,6 +272,16 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         LabelChanged?.Invoke(Label);
 
         if (!free && comparisonsUsed >= comparisonBudget) StartCoroutine(Resort(punish: true));
+    }
+
+    /// <summary>The bug is known: every other cell is eliminated and the walls close in on it.</summary>
+    private void Reveal(SearchCell cell)
+    {
+        lo = hi = cell.Index;
+        RefreshCells();
+        cell.Show(bugGlyph, foundColor, true); // still live: shoot it to make the find
+        if (popEffect != null) popEffect.Spawn(cell.transform.position, foundColor);
+        LabelChanged?.Invoke($"bug at arr[{cell.Index}]: shoot it!");
     }
 
     private void Find(SearchCell cell)
