@@ -3,103 +3,68 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// The language select menu shown on the start terminal. Owns the options and the
-/// highlighted entry; GameManager owns the screen and decides what happens on pick.
+/// The start page shown on the terminal once the compile log has typed out: controls,
+/// what the language's native abilities do, and how a run works. Java is the only
+/// language for now, so there is no picker: SPACE or ENTER runs the first option.
+/// (More options can be added to the array later and a picker brought back.)
+/// GameManager owns the screen and decides what happens on start.
 /// </summary>
 public class LanguageSelect : MonoBehaviour
 {
     [SerializeField] private LanguageOption[] options;
-    [Tooltip("Shown under every language's description.")]
-    [SerializeField] private string sharedAbility = "all languages: SHIFT = breakpoint parry";
+
+    [Header("Terminal colors (rich text)")]
+    [SerializeField] private Color headingColor = new Color32(0x39, 0xd3, 0x53, 0xff);
+    [SerializeField] private Color keyColor = new Color32(0xe3, 0xb3, 0x41, 0xff);
+    [SerializeField] private Color textColor = new Color32(0xc9, 0xd1, 0xd9, 0xff);
+    [SerializeField] private Color dimColor = new Color32(0x8b, 0x94, 0x9e, 0xff);
 
     public LanguageOption[] Options => options;
+    public LanguageOption Language => options[0];
 
-    private int selected;
-    private string error;
-
-    /// <summary>
-    /// Handles menu keys. Returns true when an unlocked language is confirmed.
-    /// Sets <paramref name="changed"/> when the menu needs to be redrawn.
-    /// </summary>
-    public bool HandleInput(Keyboard kb, out LanguageOption chosen, out bool changed)
+    /// <summary>True when the player starts the run (SPACE or ENTER).</summary>
+    public bool HandleInput(Keyboard kb, out LanguageOption chosen)
     {
         chosen = null;
-        changed = false;
-
-        int move = 0;
-        if (kb.wKey.wasPressedThisFrame || kb.upArrowKey.wasPressedThisFrame) move = -1;
-        if (kb.sKey.wasPressedThisFrame || kb.downArrowKey.wasPressedThisFrame) move = 1;
-        if (move != 0)
-        {
-            selected = (selected + move + options.Length) % options.Length;
-            error = null;
-            changed = true;
-        }
-
-        // Number keys jump straight to an entry.
-        for (int i = 0; i < options.Length && i < 9; i++)
-        {
-            if (kb[Key.Digit1 + i].wasPressedThisFrame)
-            {
-                selected = i;
-                error = null;
-                changed = true;
-                return TryChoose(out chosen);
-            }
-        }
-
-        if (kb.spaceKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame)
-        {
-            changed = true;
-            return TryChoose(out chosen);
-        }
-        return false;
-    }
-
-    private bool TryChoose(out LanguageOption chosen)
-    {
-        LanguageOption option = options[selected];
-        if (option.locked)
-        {
-            error = $"error: no compiler found for {option.displayName} (coming soon)";
-            chosen = null;
-            return false;
-        }
-        chosen = option;
+        if (!kb.spaceKey.wasPressedThisFrame && !kb.enterKey.wasPressedThisFrame) return false;
+        chosen = Language;
         return true;
     }
 
-    public string Render()
+    /// <summary>The start page, as rich text. <paramref name="header"/> is the one-line build summary.</summary>
+    public string Render(string header)
     {
-        var sb = new StringBuilder("Select a language:\n");
-        for (int i = 0; i < options.Length; i++)
-        {
-            LanguageOption o = options[i];
-            sb.Append(i == selected ? "> " : "  ");
-            sb.Append($"[{i + 1}] {o.displayName,-7} ");
-            sb.Append(o.locked ? "(coming soon)" : o.tagline);
-            sb.Append('\n');
-        }
+        LanguageOption java = Language;
+        var sb = new StringBuilder();
+        sb.Append(Color(dimColor, $"$ ./stack-invaders --lang={java.displayName.ToLowerInvariant()}")).Append('\n');
+        sb.Append(Color(textColor, header)).Append("\n\n");
+
+        Heading(sb, "// CONTROLS");
+        Row(sb, "A / D", "move left / right");
+        Row(sb, "SPACE", "throw coffee (hold to keep throwing)");
+        Row(sb, "SHIFT", "breakpoint: parry an incoming shot back");
         sb.Append('\n');
-        AppendDescription(sb, options[selected]);
+
+        Heading(sb, $"// {java.displayName.ToUpperInvariant()} RUNTIME  ({java.tagline})");
+        Row(sb, java.weaponName, java.weapon);
+        Row(sb, java.passiveName, java.passive);
+        Row(sb, java.abilityName, java.ability);
         sb.Append('\n');
-        sb.Append(error ?? "W/S to choose, SPACE to run");
+
+        Heading(sb, "// GOAL");
+        Line(sb, "clear 3 waves + 2 bosses; grab floppy disks for boons");
+        sb.Append('\n');
+
+        sb.Append(Color(headingColor, "> press ")).Append(Color(keyColor, "SPACE")).Append(Color(headingColor, " to run_"));
         return sb.ToString();
     }
 
-    /// <summary>What the highlighted language plays like: weapon, passive, ability.</summary>
-    private void AppendDescription(StringBuilder sb, LanguageOption o)
-    {
-        if (o.locked)
-        {
-            sb.Append($"  {o.displayName}: not implemented yet\n\n\n");
-        }
-        else
-        {
-            sb.Append($"  weapon   {o.weapon}\n");
-            sb.Append($"  passive  {o.passive}\n");
-            sb.Append($"  ability  {o.ability}\n");
-        }
-        sb.Append($"  {sharedAbility}\n");
-    }
+    private void Heading(StringBuilder sb, string text) => sb.Append(Color(headingColor, text)).Append('\n');
+
+    private void Row(StringBuilder sb, string key, string what) =>
+        sb.Append("  ").Append(Color(keyColor, key.PadRight(11))).Append(Color(textColor, what)).Append('\n');
+
+    private void Line(StringBuilder sb, string text) => sb.Append("  ").Append(Color(textColor, text)).Append('\n');
+
+    private static string Color(Color c, string text) => $"<color=#{ColorUtility.ToHtmlStringRGB(c)}>{text}</color>";
 }

@@ -79,6 +79,17 @@ public class BoonManager : MonoBehaviour
 
     public int LevelOf(string id) => levels.TryGetValue(id, out int l) ? l : 0;
 
+    /// <summary>Total boon levels installed this run (for the win screen).</summary>
+    public int InstalledCount
+    {
+        get
+        {
+            int total = 0;
+            foreach (int l in levels.Values) total += l;
+            return total;
+        }
+    }
+
     // ---------- Drops ----------
 
     /// <summary>A wave started: wave n (0-based index) drops n + 2 disks over its kills.</summary>

@@ -72,8 +72,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Color titleColor = new Color32(0x39, 0xd3, 0x53, 0xff);
     [SerializeField] private Color winColor = new Color32(0x39, 0xd3, 0x53, 0xff);
     [SerializeField] private Color loseColor = new Color32(0xf8, 0x51, 0x49, 0xff);
+    [SerializeField] private Color textColor = new Color32(0xc9, 0xd1, 0xd9, 0xff);
+    [SerializeField] private Color dimColor = new Color32(0x8b, 0x94, 0x9e, 0xff);
     [Tooltip("Seconds per character for the start screen's typing effect.")]
     [SerializeField] private float typeDelay = 0.02f;
+    [Tooltip("The start page is denser than the other screens, so it uses a smaller font.")]
+    [SerializeField] private int startPageFontSize = 10;
+    [Tooltip("Seconds between lines as the win screen prints.")]
+    [SerializeField] private float winLineDelay = 0.18f;
 
     private State state = State.Title;
     private Coroutine typing;
@@ -84,9 +90,12 @@ public class GameManager : MonoBehaviour
     private GameObject bossObject;
     private IBoss boss;
     private Action afterChoosing;
+    private int screenFontSize;
+    private float runStartTime;
 
     private void Awake()
     {
+        screenFontSize = screenText.fontSize;
         // Every language's weapon, abilities and HUD stay off until one is picked.
         foreach (LanguageOption option in languageSelect.Options)
         {
@@ -125,7 +134,7 @@ public class GameManager : MonoBehaviour
         // Once the compile log has typed out, it collapses to this header so the
         // language menu and its description fit on the 180px-tall screen.
         titleHeader =
-            $"Build succeeded: {waveManager.TotalBugs} warnings (bugs), {BossCount} errors (bosses)\n\n";
+            $"Build succeeded: {waveManager.TotalBugs} warnings (bugs), {BossCount} errors (bosses)";
         ShowScreen("", titleColor);
         typing = StartCoroutine(TypeOut(fullTitleText));
     }
@@ -156,10 +165,8 @@ public class GameManager : MonoBehaviour
                 break;
 
             case State.Title:
-                if (languageSelect.HandleInput(kb, out LanguageOption chosen, out bool changed))
+                if (languageSelect.HandleInput(kb, out LanguageOption chosen))
                     StartGame(chosen);
-                else if (changed)
-                    ShowTitleMenu();
                 break;
 
             case State.GameOver when kb.rKey.wasPressedThisFrame:
@@ -169,7 +176,7 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void ShowTitleMenu() => screenText.text = titleHeader + languageSelect.Render();
+    private void ShowTitleMenu() => ShowScreen(languageSelect.Render(titleHeader), titleColor, startPageFontSize);
 
     private void StartGame(LanguageOption chosen)
     {
@@ -182,6 +189,7 @@ public class GameManager : MonoBehaviour
 
         boons.SetLanguage(chosen);
         boons.BeginWave(stages[stageIndex].waveIndex);
+        runStartTime = Time.time;
 
         state = State.Playing;
         screenPanel.SetActive(false);
@@ -370,15 +378,44 @@ public class GameManager : MonoBehaviour
     {
         state = State.Won;
         SetGameplayRunning(false);
-        ShowScreen(
-            "BUILD PASSING\n\n" +
-            $"All tests passed: {waveManager.WaveCount} waves and {BossCount} bosses fixed\n" +
-            "ping and pong returned: call stack unwound\n" +
-            $"Unhandled exceptions remaining: {playerHealth.Hearts}/{playerHealth.MaxHearts}\n\n" +
-            "Process exited with code 0\n\n" +
-            "> press R to run again",
-            winColor);
+        float seconds = Time.time - runStartTime; // scaled time: pauses and menus don't count
+        string ok = Rich(winColor, "[ OK ]");
+        string[] lines =
+        {
+            Rich(dimColor, "$ git push origin main"),
+            "",
+            Rich(winColor, "*** BUILD PASSING: ALL CHECKS GREEN ***"),
+            Rich(textColor, "Congratulations, developer: you shipped it!"),
+            "",
+            $"{ok} {Rich(textColor, $"{waveManager.WaveCount}/{waveManager.WaveCount} waves cleared, {waveManager.TotalBugs} bugs squashed")}",
+            $"{ok} {Rich(textColor, "binarySearch() found its bug")}",
+            $"{ok} {Rich(textColor, "recurse(4) unwound: ping and pong returned")}",
+            $"{ok} {Rich(textColor, $"{playerHealth.Hearts}/{playerHealth.MaxHearts} hearts left, {boons.InstalledCount} boons installed")}",
+            $"{ok} {Rich(textColor, $"run time {(int)seconds / 60}m {(int)seconds % 60:00}s")}",
+            "",
+            Rich(textColor, "Merged to main. Release v1.0 is live."),
+            Rich(dimColor, "Process exited with code 0"),
+            Rich(winColor, "> press R to run again_"),
+        };
+        ShowScreen("", winColor);
+        StartCoroutine(PrintLines(lines));
     }
+
+    /// <summary>Prints whole lines one at a time (real time; rich-text tags never span lines).</summary>
+    private IEnumerator PrintLines(string[] lines)
+    {
+        var shown = new StringBuilder();
+        var wait = new WaitForSecondsRealtime(winLineDelay);
+        foreach (string line in lines)
+        {
+            if (shown.Length > 0) shown.Append('\n');
+            shown.Append(line);
+            screenText.text = shown.ToString();
+            if (line.Length > 0) yield return wait;
+        }
+    }
+
+    private static string Rich(Color c, string text) => $"<color=#{ColorUtility.ToHtmlStringRGB(c)}>{text}</color>";
 
     private void GameOver(params string[] stackTrace)
     {
@@ -408,8 +445,9 @@ public class GameManager : MonoBehaviour
                 behaviour.enabled = running;
     }
 
-    private void ShowScreen(string text, Color color)
+    private void ShowScreen(string text, Color color, int fontSize = 0)
     {
+        screenText.fontSize = fontSize > 0 ? fontSize : screenFontSize;
         screenText.text = text;
         screenText.color = color;
         screenPanel.SetActive(true);

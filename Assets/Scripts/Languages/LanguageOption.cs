@@ -11,15 +11,19 @@ public class LanguageOption
     public string displayName = "Java";
     [Tooltip("Short description shown in the menu.")]
     public string tagline = "slow start, strong finish";
-    [Tooltip("Locked languages show as 'coming soon' and can't be picked.")]
-    public bool locked;
 
-    [Header("Start screen description (keep each line short: the screen is ~45 characters wide)")]
-    [Tooltip("Primary weapon, e.g. \"coffee cup: splash hits 3 bugs\".")]
+    [Header("Start page (name column ~10 characters, description ~40)")]
+    [Tooltip("Primary weapon name, e.g. \"coffee cup\".")]
+    public string weaponName;
+    [Tooltip("What the weapon does, e.g. \"splashes a bug and both neighbors\".")]
     public string weapon;
-    [Tooltip("Passive trait, e.g. \"JIT: hold fire to throw faster\".")]
+    [Tooltip("Passive trait name, e.g. \"JIT\".")]
+    public string passiveName;
+    [Tooltip("What the passive does.")]
     public string passive;
-    [Tooltip("Native ability, e.g. \"GC: auto-frees bits near you\".")]
+    [Tooltip("Native ability name, e.g. \"GC\".")]
+    public string abilityName;
+    [Tooltip("What the ability does.")]
     public string ability;
 
     [Tooltip("Separate sprite for the item the developer holds. Leave empty if the item is drawn into the developer's frames (Java's mug).")]
