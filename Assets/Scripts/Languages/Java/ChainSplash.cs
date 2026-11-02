@@ -33,8 +33,10 @@ public class ChainSplash : MonoBehaviour
             Physics2D.OverlapCircle(center, radius, ContactFilter2D.noFilter, Found);
             foreach (Collider2D col in Found)
             {
-                if (IsChainTarget(col, out IShootable target) && hit.Add(target))
-                    target.OnShot();
+                if (!IsChainTarget(col, out IShootable target) || !hit.Add(target)) continue;
+                // Boss parts get told it was automatic (e.g. no linear-search taunt for a random hop).
+                if (target is IEnemyBody body) body.OnChainedHit();
+                else target.OnShot();
             }
             if (effect != null) effect.Spawn(center, color);
         }

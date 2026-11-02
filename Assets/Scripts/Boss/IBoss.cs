@@ -29,4 +29,7 @@ public interface IEnemyBody : IShootable
 {
     /// <summary>Hit by the developer's own parried projectile (may differ from a normal shot).</summary>
     void OnParriedHit();
+
+    /// <summary>Hit by an automatic chained effect (Maven), not a shot the player aimed.</summary>
+    void OnChainedHit();
 }

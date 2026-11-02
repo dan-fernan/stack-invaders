@@ -42,8 +42,11 @@ public class SearchCell : MonoBehaviour, IEnemyBody
         hitbox.enabled = live; // eliminated cells let shots pass through
     }
 
-    public void OnShot() => boss.Probe(this);
+    public void OnShot() => boss.Probe(this, BinarySearchBoss.ProbeSource.Aimed);
 
     /// <summary>A parried shot reveals this cell for free (no comparison spent).</summary>
-    public void OnParriedHit() => boss.Probe(this, free: true);
+    public void OnParriedHit() => boss.Probe(this, BinarySearchBoss.ProbeSource.Parried);
+
+    /// <summary>A Maven chain: costs a comparison, but isn't the player's choice of cell.</summary>
+    public void OnChainedHit() => boss.Probe(this, BinarySearchBoss.ProbeSource.Chained);
 }

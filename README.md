@@ -119,6 +119,9 @@ Between waves 2 and 3. A bug hides in one cell of a 16-cell sorted array, and ev
 - **Weapons:** every shot that reaches a cell is a comparison, so a warmed-up Java spray burns
   the budget and trips the taunt. This fight rewards a few deliberate throws, and shooting down
   incoming shots works too.
+- **Maven chains cut both ways.** A chained splash that lands on a cell is a real comparison: an
+  extra hint, or even a lucky find, but it also spends budget and sets off the off-by-one shots.
+  It never triggers the linear-search taunt, though, since a random hop isn't your choice.
 
 Implementation: `BinarySearchBoss`, `SearchCell`, and movement limits in `PlayerController`.
 

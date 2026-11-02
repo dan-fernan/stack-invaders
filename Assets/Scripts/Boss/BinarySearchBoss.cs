@@ -20,6 +20,8 @@ using UnityEngine;
 ///     array's fire rate until the next re-sort.
 ///   - Parry: a parried shot that flies back into a cell is a free comparison (no budget,
 ///     no off-by-one, no taunt), so standing under a cell and parrying its shot tests it.
+///   - Maven chains: a chained splash on a cell is a real comparison (budget, off-by-one),
+///     but the cell isn't the player's choice, so it never counts toward the taunt.
 ///   - Running out of comparisons re-sorts the array (the bug moves, hints clear, walls
 ///     open) and every live cell fires at once. Live cells also drop shots meanwhile.
 /// </summary>
@@ -196,23 +198,37 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
 
     // ---------- Searching ----------
 
-    /// <summary>A comparison: called when the player (or a parried shot) hits a live cell.</summary>
-    /// <param name="free">A parried shot: reveals the cell without costing a comparison,
-    /// triggering off-by-one, or counting toward the linear-search taunt.</param>
-    public void Probe(SearchCell cell, bool free = false)
+    /// <summary>What caused a probe.</summary>
+    public enum ProbeSource
+    {
+        /// <summary>The player's own shot: full rules.</summary>
+        Aimed,
+        /// <summary>A parried shot: free (no budget, no off-by-one, no taunt).</summary>
+        Parried,
+        /// <summary>A Maven chain: costs a comparison and triggers off-by-one, never the taunt.</summary>
+        Chained,
+    }
+
+    /// <summary>A comparison: called when a shot, a parried shot, or a chain hits a live cell.</summary>
+    public void Probe(SearchCell cell, ProbeSource source = ProbeSource.Aimed)
     {
         if (defeated || resorting || !cell.IsLive) return;
         int i = cell.Index;
         probed[i] = true;
+        bool free = source == ProbeSource.Parried;
 
         if (!free)
         {
             comparisonsUsed++;
 
-            // Linear search: a binary search never probes next to its last probe while 3+ cells remain.
-            bool linear = lastProbe >= 0 && Mathf.Abs(i - lastProbe) == 1 && hi - lo + 1 >= linearRangeThreshold;
-            lastProbe = i;
-            if (linear) taunting = true;
+            // Linear search: a binary search never probes next to its last probe while 3+ cells
+            // remain. Only the player's own aimed probes count; a Maven hop isn't their choice.
+            if (source == ProbeSource.Aimed)
+            {
+                bool linear = lastProbe >= 0 && Mathf.Abs(i - lastProbe) == 1 && hi - lo + 1 >= linearRangeThreshold;
+                lastProbe = i;
+                if (linear) taunting = true;
+            }
 
             // Off-by-one: the neighbors retaliate.
             if (i > 0) FireFrom(cells[i - 1]);
