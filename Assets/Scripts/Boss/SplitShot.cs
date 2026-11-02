@@ -111,7 +111,7 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
             // Parried: hits the first boss body part it touches (a frame, a search cell...).
             if (other.TryGetComponent(out IEnemyBody body))
             {
-                body.OnShot();
+                body.OnParriedHit();
                 Finish(true);
             }
             return;

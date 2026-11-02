@@ -27,4 +27,6 @@ public interface IBoss
 /// </summary>
 public interface IEnemyBody : IShootable
 {
+    /// <summary>Hit by the developer's own parried projectile (may differ from a normal shot).</summary>
+    void OnParriedHit();
 }

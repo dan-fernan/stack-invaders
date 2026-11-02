@@ -18,6 +18,8 @@ using UnityEngine;
 ///   - Linear-search taunt: probing right next to your last probe while 3+ cells are still
 ///     in range (something a binary search never does) flashes O(n)! and doubles the
 ///     array's fire rate until the next re-sort.
+///   - Parry: a parried shot that flies back into a cell is a free comparison (no budget,
+///     no off-by-one, no taunt), so standing under a cell and parrying its shot tests it.
 ///   - Running out of comparisons re-sorts the array (the bug moves, hints clear, walls
 ///     open) and every live cell fires at once. Live cells also drop shots meanwhile.
 /// </summary>
@@ -195,21 +197,27 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     // ---------- Searching ----------
 
     /// <summary>A comparison: called when the player (or a parried shot) hits a live cell.</summary>
-    public void Probe(SearchCell cell)
+    /// <param name="free">A parried shot: reveals the cell without costing a comparison,
+    /// triggering off-by-one, or counting toward the linear-search taunt.</param>
+    public void Probe(SearchCell cell, bool free = false)
     {
         if (defeated || resorting || !cell.IsLive) return;
         int i = cell.Index;
-        comparisonsUsed++;
         probed[i] = true;
 
-        // Linear search: a binary search never probes next to its last probe while 3+ cells remain.
-        bool linear = lastProbe >= 0 && Mathf.Abs(i - lastProbe) == 1 && hi - lo + 1 >= linearRangeThreshold;
-        lastProbe = i;
-        if (linear) taunting = true;
+        if (!free)
+        {
+            comparisonsUsed++;
 
-        // Off-by-one: the neighbors retaliate.
-        if (i > 0) FireFrom(cells[i - 1]);
-        if (i < cellCount - 1) FireFrom(cells[i + 1]);
+            // Linear search: a binary search never probes next to its last probe while 3+ cells remain.
+            bool linear = lastProbe >= 0 && Mathf.Abs(i - lastProbe) == 1 && hi - lo + 1 >= linearRangeThreshold;
+            lastProbe = i;
+            if (linear) taunting = true;
+
+            // Off-by-one: the neighbors retaliate.
+            if (i > 0) FireFrom(cells[i - 1]);
+            if (i < cellCount - 1) FireFrom(cells[i + 1]);
+        }
 
         if (i == target)
         {
@@ -225,7 +233,7 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         RefreshCells();
         LabelChanged?.Invoke(Label);
 
-        if (comparisonsUsed >= comparisonBudget) StartCoroutine(Resort(punish: true));
+        if (!free && comparisonsUsed >= comparisonBudget) StartCoroutine(Resort(punish: true));
     }
 
     private void Find(SearchCell cell)

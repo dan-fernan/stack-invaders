@@ -43,4 +43,7 @@ public class SearchCell : MonoBehaviour, IEnemyBody
     }
 
     public void OnShot() => boss.Probe(this);
+
+    /// <summary>A parried shot reveals this cell for free (no comparison spent).</summary>
+    public void OnParriedHit() => boss.Probe(this, free: true);
 }

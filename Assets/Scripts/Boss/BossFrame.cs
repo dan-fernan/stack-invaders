@@ -80,6 +80,7 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
     }
 
     public void OnShot() => TakeDamage(1);
+    public void OnParriedHit() => TakeDamage(1);
 
     public void TakeDamage(int amount)
     {
