@@ -36,3 +36,6 @@ crashlytics-build.properties
 
 # OS
 .DS_Store
+
+# Web build temp output (Burst) written to the project root
+/[Dd]ata/
