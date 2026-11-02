@@ -22,6 +22,11 @@ public class BoonManager : MonoBehaviour
     [Tooltip("Shows installed boons, e.g. \"SB2 JU1\".")]
     [SerializeField] private Text hudLabel;
 
+    [Header("Universal boons (offered to every language)")]
+    [SerializeField] private BoonDefinition[] universalBoons;
+    [Tooltip("Component implementing IBoonReceiver that applies the universal boons.")]
+    [SerializeField] private MonoBehaviour universalReceiver;
+
     /// <summary>A disk was picked up; GameManager should pause and show an offer.</summary>
     public event Action DiskPickedUp;
 
@@ -29,6 +34,7 @@ public class BoonManager : MonoBehaviour
 
     private BoonDefinition[] pool = Array.Empty<BoonDefinition>();
     private IBoonReceiver receiver;
+    private readonly HashSet<string> universalIds = new HashSet<string>();
     private readonly Dictionary<string, int> levels = new Dictionary<string, int>();
     private readonly List<BoonDefinition> offer = new List<BoonDefinition>();
     private readonly List<FloppyDisk> disksOnField = new List<FloppyDisk>();
@@ -44,7 +50,15 @@ public class BoonManager : MonoBehaviour
     /// <summary>Called once the language is chosen.</summary>
     public void SetLanguage(LanguageOption language)
     {
-        pool = language.boons ?? Array.Empty<BoonDefinition>();
+        // The language's own boons plus the universal ones.
+        var all = new List<BoonDefinition>(language.boons ?? Array.Empty<BoonDefinition>());
+        universalIds.Clear();
+        foreach (BoonDefinition b in universalBoons ?? Array.Empty<BoonDefinition>())
+        {
+            all.Add(b);
+            universalIds.Add(b.id);
+        }
+        pool = all.ToArray();
         receiver = language.boonReceiver as IBoonReceiver;
         levels.Clear();
         RefreshHud();
@@ -168,7 +182,8 @@ public class BoonManager : MonoBehaviour
         int level = LevelOf(boon.id) + 1;
         levels[boon.id] = level;
         PendingOffers = Mathf.Max(0, PendingOffers - 1);
-        receiver?.ApplyBoon(boon.id, level);
+        IBoonReceiver target = universalIds.Contains(boon.id) ? universalReceiver as IBoonReceiver : receiver;
+        target?.ApplyBoon(boon.id, level);
         RefreshHud();
     }
 

@@ -47,6 +47,14 @@ public class PlayerHealth : MonoBehaviour
         Changed?.Invoke(Hearts, maxHearts);
     }
 
+    /// <summary>Vertical scaling: one more max heart, which arrives full.</summary>
+    public void AddMaxHeart()
+    {
+        maxHearts++;
+        Hearts++;
+        Changed?.Invoke(Hearts, maxHearts);
+    }
+
     /// <summary>Refill shields to the per-stage amount (at the start of each stage).</summary>
     public void RefillShields()
     {

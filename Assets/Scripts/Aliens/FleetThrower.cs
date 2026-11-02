@@ -17,6 +17,7 @@ public class FleetThrower : MonoBehaviour
     private class Throw
     {
         public Alien alien;
+        public Transform aim;
         public int bitsInFlight;
         public bool anyReturned;
     }
@@ -97,20 +98,22 @@ public class FleetThrower : MonoBehaviour
         // The player may have shot the target during the telegraph.
         if (target == null || !target.IsPresent) yield break;
 
+        // Load balancing: each throw targets a random living instance (the developer or a clone).
+        Transform aim = PickInstance();
         Vector3 origin = target.transform.position;
-        Vector2 toPlayer = ((Vector2)(player.position - origin)).normalized;
+        Vector2 toAim = ((Vector2)(aim.position - origin)).normalized;
         target.SetAway(true);
 
-        var thrown = new Throw { alien = target, bitsInFlight = 2 };
+        var thrown = new Throw { alien = target, bitsInFlight = 2, aim = aim };
         throwsInFlight++;
-        SpawnBit(thrown, "0", zeroSprite, origin + Vector3.left * bitSeparation, Rotate(toPlayer, -spreadAngle));
-        SpawnBit(thrown, "1", oneSprite, origin + Vector3.right * bitSeparation, Rotate(toPlayer, spreadAngle));
+        SpawnBit(thrown, "0", zeroSprite, origin + Vector3.left * bitSeparation, Rotate(toAim, -spreadAngle));
+        SpawnBit(thrown, "1", oneSprite, origin + Vector3.right * bitSeparation, Rotate(toAim, spreadAngle));
     }
 
     private void SpawnBit(Throw thrown, string value, Sprite glyph, Vector3 position, Vector2 direction)
     {
         BitProjectile bit = Instantiate(bitPrefab, position, Quaternion.identity);
-        bit.Launch(value, glyph, thrown.alien.Color, direction, player, thrown.alien.transform);
+        bit.Launch(value, glyph, thrown.alien.Color, direction, thrown.aim, thrown.alien.transform);
         // Each bit resolves exactly once and is then destroyed, so this handler needs no unsubscribe.
         bit.Resolved += (_, outcome) => OnBitResolved(thrown, outcome);
     }
@@ -125,6 +128,15 @@ public class FleetThrower : MonoBehaviour
         if (alien == null || alien.IsDead) return;
         if (thrown.anyReturned) alien.SetAway(false);
         else alien.Kill();
+    }
+
+    private Transform PickInstance()
+    {
+        int pick = Random.Range(0, PlayerClone.Alive.Count + 1);
+        if (pick == 0) return player;
+        foreach (PlayerClone clone in PlayerClone.Alive)
+            if (--pick == 0) return clone.transform;
+        return player;
     }
 
     private static Vector2 Rotate(Vector2 v, float degrees) => Quaternion.Euler(0f, 0f, degrees) * v;

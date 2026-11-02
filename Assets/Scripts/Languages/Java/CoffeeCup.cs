@@ -33,6 +33,9 @@ public class CoffeeCup : MonoBehaviour
     private int chainCount;
     private float chainRadius;
 
+    /// <summary>Scales the splash radius (clones throw half-size cups).</summary>
+    public void SetSplashScale(float scale) => splashRadius *= scale;
+
     /// <summary>Maven boon: after smashing, chain this many smaller splashes to nearby bugs.</summary>
     public void SetChain(int count, float radius)
     {

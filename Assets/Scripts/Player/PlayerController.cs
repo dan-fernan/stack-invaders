@@ -61,10 +61,15 @@ public class PlayerController : MonoBehaviour
     /// Clamp using the camera's visible area and the sprite's half-width, so the
     /// whole ship stays visible regardless of resolution or aspect ratio.
     /// </summary>
-    private float ClampToScreen(float x)
+    private float ClampToScreen(float x) => ClampX(x, spriteRenderer.bounds.extents.x);
+
+    /// <summary>
+    /// Clamps a body of the given half-width to the screen and any boss movement limits.
+    /// Horizontal-scaling clones use this too, so they never leave the screen or pass a wall.
+    /// </summary>
+    public float ClampX(float x, float halfShipWidth)
     {
         float halfViewWidth = cam.orthographicSize * cam.aspect;
-        float halfShipWidth = spriteRenderer.bounds.extents.x;
         float limit = halfViewWidth - halfShipWidth - edgePadding;
 
         float camX = cam.transform.position.x;

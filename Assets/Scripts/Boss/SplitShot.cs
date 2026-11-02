@@ -118,6 +118,12 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
         }
 
         if (other.TryGetComponent(out BreakpointParry parry) && parry.TryCatch(this)) return;
+        if (other.TryGetComponent(out PlayerClone clone) && clone.IsAlive)
+        {
+            clone.TakeHit();
+            Finish(true);
+            return;
+        }
         if (other.TryGetComponent(out PlayerHealth health) && health.TakeHit())
             Finish(true);
     }
