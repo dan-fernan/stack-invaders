@@ -955,11 +955,11 @@ MonoBehaviour:
       Auto-merging formations...
 
       CONFLICT: bugs on every side'
-  - name: recurse(3)
+  - name: recurse(4)
     waveIndex: -1
     bossPrefab: {fileID: 8738044699509742763, guid: 12139e3ca9fd5443a8644d3d37a83fad, type: 3}
     bossPosition: {x: 0, y: 4}
-    intro: '$ ./recurse 3
+    intro: '$ ./recurse 4
 
       warning: recursive call without a depth check'
   bossHud: {fileID: 599218881}

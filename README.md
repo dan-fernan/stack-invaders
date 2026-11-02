@@ -40,7 +40,7 @@ instructor's code and documenting how this project handles each one instead (see
 | --- | --- | --- |
 | Better graphics for aliens and ship | ✅ | Original pixel art. **The developer** (16×20, `PlayerAnimator`): red headphones, green hoodie and glasses, with a breathing idle seen from behind, a 4-frame sideways run (mirrored for left, driven by actual movement, so being pushed by a wall doesn't play the run), and a wind-up / release / follow-through throw where the hand really lets go of the mug. **Java's coffee** is a mug that tumbles through 2 frames, sloshing coffee. Also three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
 | Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). The fleet's bit attack (below) removes one heart per hit, followed by 1 s of invulnerability while the ship blinks. Running out of hearts ends the game. |
-| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 175 warnings (bugs) and 2 errors (bosses)`; Space skips the typing. The log then collapses to one line, and a language select menu appears (W/S or 1–3 to choose, Space to run). It describes the highlighted language: its weapon, passive and ability (for Java: `coffee cup: splash hits 3 bugs`, `JIT: hold fire to throw faster`, `GC: auto-frees bits near you`), plus the breakpoint parry every language shares. **Between waves:** a 2 s terminal break (`$ git pull origin feature/more-bugs …`). **Win** (after the final boss): `BUILD PASSING … recurse(3) returned: call stack unwound … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
+| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 175 warnings (bugs) and 2 errors (bosses)`; Space skips the typing. The log then collapses to one line, and a language select menu appears (W/S or 1–3 to choose, Space to run). It describes the highlighted language: its weapon, passive and ability (for Java: `coffee cup: splash hits 3 bugs`, `JIT: hold fire to throw faster`, `GC: auto-frees bits near you`), plus the breakpoint parry every language shares. **Between waves:** a 2 s terminal break (`$ git pull origin feature/more-bugs …`). **Win** (after the final boss): `BUILD PASSING … isEven and isOdd returned: call stack unwound … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
 | Animations when collisions occur | ✅ | Pixel-art flipbook effects (`OneShotAnimation`), tinted to the color of whatever was hit. **Bug shot:** the bug flattens, bursts into a splat, then scatters into pixels (`BugSquash`). **Bit shot, or bit hits the ship:** a small pixel burst (`BitPop`). **Ship hit:** a 0.2 s camera shake in whole game pixels, so the image stays on the pixel grid (`CameraShake`), plus the invulnerability blink. **Bug rebuilt:** a pop in the bug's color when its bit returns. |
 | Additional levels | ✅ | Three waves, each different from the last (`WaveManager`, configured in the Inspector). **Wave 1:** the classic 5×11 formation sweeping the full width. **Wave 2:** two 4×6 formations, back-left and back-right, each bouncing between its screen edge and the midpoint, so they drop about twice as often. **Wave 3:** a 4×9 middle formation in front, with 3×6 back-left and back-right formations behind it. The back formations won't drop onto the middle one until it's cleared, so the player chooses which wave to thin out. Every formation has its own throw manager and speed-up. Hearts carry over between stages; JIT heat and the GC timer reset. The full run is **Wave 1 → Wave 2 → binary search miniboss → Wave 3 → recursion final boss** (see below). |
 
@@ -136,37 +136,41 @@ Implementation: `BinarySearchBoss`, `SearchCell`, and movement limits in `Player
 
 ### Final boss: recursion
 
-After wave 3, the final boss `recurse(3)` appears. It's built around how recursion works:
+After wave 3, the final boss `recurse(4)` appears. It's built around how recursion works, and it
+escalates through three phases as its 70 HP drop.
 
+**Always active**
 - **It calls itself.** Every 1.6 s, the root or one of its clones makes a recursive call,
-  spawning a child one level deeper: `recurse(2)`, `recurse(1)`, down to the base case
-  `recurse(0)`, shown in a different color, which can't call further. Each frame shows its
-  argument as a number on its body. A frame's first call always lands directly below it, so a
-  column of clones shields the root; other calls branch outward.
-- **Unwinding.** Clones have 1 HP and block player shots. Destroying any frame unwinds its whole
-  subtree, one depth level at a time. The root has 40 HP, shown in a boss health bar across the
-  top of the screen (the fill flashes on hits, a lighter trail shows recent damage, and the bar
-  turns gray during a stack overflow). Destroying the root unwinds the entire call stack and wins
-  the fight. Cut a branch to open a lane, then hit the root.
-- **Stack overflow.** If the tree grows past 12 frames, the boss throws `StackOverflowError`: it
-  freezes and flashes for 4 s (the HUD shows the error), then its deep frames unwind.
-- **Recursive split shot.** A frame fires a shot that splits in two every 0.45 s, as many times
-  as its argument, so the root's shots go 1 → 2 → 4 → 8 while base cases fire single shots.
-  Shooting a shot before it splits removes its future children. The boss fires faster as the
-  root loses health.
-- **Stack-trace beam.** The root marks its column with a blinking red outline for 0.8 s, then
-  fires a 1 s beam of scrolling stack-trace lines down it. Move out of the column. It fires every
-  9 s at full health, down to every 4 s near death.
-- **Return-value rain.** Every frame you unwind "returns" its N: the digit falls straight down,
-  so a big unwind above you means a lot of rain. You can shoot the falling digits or parry them
-  back up. Frames lost to a stack overflow crashed, so they return nothing.
-- **Tail-call dive.** Below half health, a clone blinks and marks a dotted path to where you
-  are, then dives along it. If it misses, it leaves the screen and flies back to its slot. A
-  diving clone can be shot, or parried, which kills it and unwinds its subtree.
+  spawning a child one level deeper: `recurse(3)` down to the base case `recurse(0)`, shown in a
+  different color, which can't call further. Each frame shows its argument as a number on its
+  body. A frame's first call lands directly below it, so a column of clones (2 HP each) shields
+  the root; other calls branch outward. A full tree is 35 frames, checked so none overlap.
+- **Unwinding.** Clones block player shots. Destroying any frame unwinds its whole subtree, one
+  depth level at a time, and each unwound frame "returns" its N as a falling digit
+  (return-value rain).
+- **Stack overflow.** More than 18 frames throws `StackOverflowError`: the boss freezes for 4 s
+  (the health bar turns gray), then frames at depth 2 and below unwind without returning anything.
+- **Recursive split shot.** A frame fires a shot that splits in two every 0.45 s, up to 3 times.
+- **Fibonacci volley.** Every 4 s, a fan of 1, 1, 2, 3, 5, 8 shots, then the sequence repeats.
+- **Stack-trace beam.** A root marks its column, then fires a 1 s beam of scrolling stack-trace
+  lines.
 
-Implementation: `RecursionBoss` (calling, unwinding, overflow, attacks), `BossFrame` (one call
-frame, including the dive), `SplitShot` (split shots and return values), `StackTraceBeam`, and
-`BossHud` (health bar, shared by both bosses through the `IBoss` interface). The run order lives in
+**Phase 2 (66% HP):**
+- **Memoization:** the boss caches where you've been, marks those spots on the floor, then drops
+  fast shots on them, so revisiting a spot gets punished.
+- **Stack growth:** the tree pushes down one row every 9 s (up to 3 rows); an overflow resets it.
+- **Tail-call dives:** a clone marks a dotted path to you and dives along it. It's shootable and
+  parryable.
+- **The beam recurses:** it forks into two angled branches partway down.
+
+**Phase 3 (33% HP): mutual recursion.** The tree collapses and the root splits into
+`isEven(3)` and `isOdd(3)`, two half-size trees that share the remaining HP. Kill one and the
+other calls twice as fast; kill both to win. The beam forks into four.
+
+Implementation: `RecursionBoss` (calling, unwinding, overflow, phases, attacks), `BossFrame` (one
+call frame, including the dive), `SplitShot` (split shots, return values, volleys, memoized
+shots), `StackTraceBeam` (now fires along any segment, so it can fork), and `BossHud` (health bar,
+shared by both bosses through the `IBoss` interface). The run order lives in
 `GameManager.stages`, a list of waves and bosses set in the Inspector.
 
 ## Languages (weapon select)

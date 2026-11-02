@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Boss health bar across the top of the screen: the boss's label (e.g. "recurse(3)") over
+/// Boss health bar across the top of the screen: the boss's label (e.g. "recurse(4)") over
 /// a pixel bar whose fill drains on hits (flashing white), with a lighter "recent damage"
 /// trail that catches up after a moment. Turns gray while the boss is stunned.
 /// Works with any IBoss.

@@ -23,10 +23,18 @@ public class StackTraceBeam : MonoBehaviour
     [SerializeField] private Color beamColor = new Color32(0x58, 0xa6, 0xff, 0xff);
 
     /// <summary>Starts the attack in a column at x, from top down to bottom.</summary>
-    public void Fire(float x, float top, float bottom)
+    public void Fire(float x, float top, float bottom) =>
+        FireSegment(new Vector2(x, top), new Vector2(x, bottom));
+
+    /// <summary>
+    /// Starts the attack along any segment (forked beams run at an angle). The beam's
+    /// sprites and hitbox run along its local Y axis, which is turned to point along the segment.
+    /// </summary>
+    public void FireSegment(Vector2 from, Vector2 to)
     {
-        float height = top - bottom;
-        transform.position = new Vector3(x, (top + bottom) / 2f, 0f);
+        float height = Vector2.Distance(from, to);
+        transform.position = (from + to) / 2f;
+        transform.rotation = Quaternion.LookRotation(Vector3.forward, to - from);
 
         float half = width / 2f;
         outlineLeft.transform.localPosition = new Vector3(-half, 0f, 0f);

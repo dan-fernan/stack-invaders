@@ -4,19 +4,22 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Miniboss: recurse(3). The root keeps calling itself, and so do its clones, growing a
-/// call tree down toward the player:
-///   - Each frame's first call lands directly below it, so a column of clones shields
-///     the root; side calls branch outward.
+/// Final boss: recurse(4). The root keeps calling itself, and so do its clones, growing a
+/// call tree down toward the developer.
+///   - Each frame's first call lands directly below it, so a column of clones (2 HP each)
+///     shields the root; side calls branch outward.
 ///   - Destroying a frame unwinds its whole subtree, one depth level at a time.
-///     Destroying the root (12 HP) unwinds everything and wins the fight.
-///   - Growing past the stack limit throws StackOverflowError: the boss freezes for a
-///     few seconds, then its deep frames unwind.
-///   - Frames fire SplitShots whose split count equals their N (the recursion depth left).
-///   - The root fires a telegraphed stack-trace beam, more often as it loses HP.
-///   - Unwound frames "return" their N: the digit falls as a projectile (return-value rain).
-///     Frames lost to a stack overflow crashed, so they return nothing.
-///   - Below half HP, clones make telegraphed tail-call dives at the developer.
+///   - Growing past the stack limit throws StackOverflowError: the boss freezes, then its
+///     deep frames unwind (and any stack growth resets).
+///   - Frames fire SplitShots that split min(N, 3) times; unwound frames "return" their N
+///     as falling digits (crashed frames return nothing).
+/// The fight escalates in three phases by remaining HP:
+///   1. (100-66%) split shots, return-value rain, stack-trace beam, Fibonacci volleys.
+///   2. (66-33%)  + memoization (fires at your cached positions), stack growth (the tree
+///                pushes down a row), tail-call dives, and the beam forks in two.
+///   3. (< 33%)   mutual recursion: the tree collapses and the root splits into isEven and
+///                isOdd, sharing the remaining HP. Kill one and the other calls twice as
+///                fast; kill both to win. The beam forks into four.
 /// </summary>
 public class RecursionBoss : MonoBehaviour, IBoss
 {
@@ -30,48 +33,76 @@ public class RecursionBoss : MonoBehaviour, IBoss
     [SerializeField] private Color cloneColor = new Color32(0x38, 0x8b, 0xfd, 0xff);
     [Tooltip("The base case, recurse(0), looks slightly different.")]
     [SerializeField] private Color baseCaseColor = new Color32(0xe3, 0xb3, 0x41, 0xff);
+    [SerializeField] private Color mutualColor = new Color32(0xbc, 0x8c, 0xff, 0xff);
     [SerializeField] private Color digitColor = new Color32(0x0d, 0x11, 0x17, 0xff);
     [SerializeField] private OneShotAnimation unwindEffect;
 
     [Header("Recursion")]
     [Tooltip("The root is recurse(maxDepth); recurse(0) frames can't call further.")]
-    [SerializeField] private int maxDepth = 3;
-    [SerializeField] private int rootHp = 40;
+    [SerializeField] private int maxDepth = 4;
+    [SerializeField] private int rootHp = 70;
     [SerializeField] private int cloneHp = 1;
+    [Tooltip("HP of clones in the center column that shields the root.")]
+    [SerializeField] private int shieldCloneHp = 2;
     [Tooltip("Seconds between recursive calls (new clones).")]
     [SerializeField] private float callInterval = 1.6f;
     [Tooltip("More frames than this throws StackOverflowError.")]
-    [SerializeField] private int stackLimit = 12;
+    [SerializeField] private int stackLimit = 18;
     [SerializeField] private float overflowStunTime = 4f;
     [Tooltip("After an overflow, frames at this depth or deeper unwind.")]
     [SerializeField] private int overflowUnwindDepth = 2;
     [Tooltip("Vertical distance between depth levels (0.875 = 14 pixels, keeps frames on the pixel grid).")]
     [SerializeField] private float rowStep = 0.875f;
-    [Tooltip("Sideways distance of a side call at each depth (index = child depth).")]
-    [SerializeField] private float[] sideStep = { 0f, 3f, 1.5f, 0.75f };
+    [Tooltip("Sideways distance of a side call at each depth (index = child depth). Checked so no two frames overlap.")]
+    [SerializeField] private float[] sideStep = { 0f, 1.75f, 3.5f, 1.75f, 0.875f };
     [Tooltip("Delay between unwinding one depth level and the next.")]
     [SerializeField] private float unwindStepTime = 0.08f;
 
-    [Header("Attack")]
-    [SerializeField] private SplitShot shotPrefab;
-    [Tooltip("Seconds between shots at full root HP / near death (hitting it makes it angrier).")]
-    [SerializeField] private Vector2 fireIntervalRange = new Vector2(1.5f, 0.7f);
-    [Tooltip("Chance the root fires a given shot itself (its shots split the most).")]
-    [Range(0f, 1f)] [SerializeField] private float rootFireChance = 0.35f;
+    [Header("Phases (fraction of total HP)")]
+    [Range(0f, 1f)] [SerializeField] private float phase2At = 0.66f;
+    [Range(0f, 1f)] [SerializeField] private float phase3At = 0.33f;
 
-    [Header("Stack-trace beam")]
-    [SerializeField] private StackTraceBeam beamPrefab;
-    [Tooltip("Seconds between beams at full root HP / near death.")]
-    [SerializeField] private Vector2 beamIntervalRange = new Vector2(9f, 4f);
+    [Header("Split shot")]
+    [SerializeField] private SplitShot shotPrefab;
+    [Tooltip("Seconds between shots at full HP / near death (hitting it makes it angrier).")]
+    [SerializeField] private Vector2 fireIntervalRange = new Vector2(1.5f, 0.7f);
+    [Tooltip("Chance a root fires a given shot itself (its shots split the most).")]
+    [Range(0f, 1f)] [SerializeField] private float rootFireChance = 0.35f;
+    [Tooltip("Shots never split more than this many times (recurse(4) would be 16 bullets).")]
+    [SerializeField] private int maxShotSplits = 3;
 
     [Header("Return-value rain")]
     [Tooltip("Return values fall at this fraction of a split shot's speed.")]
     [SerializeField] private float returnValueSpeedScale = 0.75f;
 
-    [Header("Tail-call dive")]
-    [Tooltip("Dives start once the root's HP fraction drops to this.")]
-    [Range(0f, 1f)] [SerializeField] private float diveHpThreshold = 0.5f;
-    [Tooltip("Seconds between dives just below the threshold / near death.")]
+    [Header("Fibonacci volley (all phases)")]
+    [SerializeField] private float fibInterval = 4f;
+    [Tooltip("Total fan angle of a volley, in degrees.")]
+    [SerializeField] private float fibSpread = 70f;
+    [SerializeField] private float fibSpeedScale = 0.9f;
+
+    [Header("Stack-trace beam")]
+    [SerializeField] private StackTraceBeam beamPrefab;
+    [Tooltip("Seconds between beams at full HP / near death.")]
+    [SerializeField] private Vector2 beamIntervalRange = new Vector2(9f, 4f);
+    [Tooltip("Each fork turns this many degrees off its parent beam.")]
+    [SerializeField] private float beamForkAngle = 18f;
+
+    [Header("Memoization (phase 2+)")]
+    [Tooltip("Seconds between caching the developer's position.")]
+    [SerializeField] private float memoSampleInterval = 1.2f;
+    [SerializeField] private int memoCacheSize = 3;
+    [SerializeField] private float memoInterval = 6f;
+    [SerializeField] private float memoTelegraphTime = 0.7f;
+    [SerializeField] private float memoSpeedScale = 1.6f;
+
+    [Header("Stack growth (phase 2+)")]
+    [SerializeField] private float growInterval = 9f;
+    [Tooltip("Max rows the tree pushes down before an overflow resets it.")]
+    [SerializeField] private int maxGrowRows = 3;
+
+    [Header("Tail-call dive (phase 2+)")]
+    [Tooltip("Seconds between dives in phase 2 / near death.")]
     [SerializeField] private Vector2 diveIntervalRange = new Vector2(6f, 3f);
     [SerializeField] private float diveTelegraphTime = 0.6f;
     [SerializeField] private float diveSpeed = 9f;
@@ -79,99 +110,145 @@ public class RecursionBoss : MonoBehaviour, IBoss
     [SerializeField] private Sprite telegraphDot;
     [SerializeField] private int telegraphDots = 8;
 
+    [Header("Mutual recursion (phase 3)")]
+    [SerializeField] private int mutualDepth = 3;
+    [Tooltip("Sideways steps for the two half-size trees (index = child depth).")]
+    [SerializeField] private float[] mutualSideStep = { 0f, 1f, 1.75f, 0.875f };
+    [SerializeField] private float mutualRootX = 4.75f;
+    [SerializeField] private float splitTelegraphTime = 1f;
+    [Tooltip("Call-interval multiplier for the survivor once one of isEven/isOdd dies.")]
+    [SerializeField] private float survivorCallMultiplier = 0.5f;
+
     [Header("Movement")]
-    [SerializeField] private float driftAmplitude = 1.5f;
+    [SerializeField] private float driftAmplitude = 1f;
     [SerializeField] private float driftPeriod = 8f;
     [SerializeField] private int pixelsPerUnit = 16;
 
-    /// <summary>(current, max) root HP.</summary>
     public event Action<int, int> HpChanged;
     public event Action<string> LabelChanged;
     /// <summary>Raised when StackOverflowError starts (true) and ends (false).</summary>
     public event Action<bool> StunnedChanged;
     public event Action Defeated;
 
-    public int Hp => Mathf.Max(0, Root.Hp);
-    public int MaxHp => Root.MaxHp;
-    public string Label => IsStunned ? "StackOverflowError!" : $"recurse({maxDepth})";
+    /// <summary>Total HP of the living root(s).</summary>
+    public int Hp
+    {
+        get
+        {
+            int hp = 0;
+            foreach (BossFrame r in roots) hp += Mathf.Max(0, r.Hp);
+            return hp;
+        }
+    }
+    public int MaxHp => rootHp;
+    public int Phase { get; private set; } = 1;
 
-    public BossFrame Root { get; private set; }
+    public string Label
+    {
+        get
+        {
+            if (IsStunned) return "StackOverflowError!";
+            if (Phase < 3) return $"recurse({maxDepth})";
+            if (roots.Count == 2) return $"isEven({mutualDepth}) / isOdd({mutualDepth})";
+            return roots.Count == 1 ? $"{roots[0].name} x2 speed" : "";
+        }
+    }
+
+    /// <summary>The first living root (phase 1-2: the only one).</summary>
+    public BossFrame Root => roots.Count > 0 ? roots[0] : null;
     public int FrameCount => frames.Count;
     public bool IsStunned { get; private set; }
 
     private const int SlotBelow = 0, SlotSide = 1, SlotLeft = 2, SlotRight = 3;
+    private static readonly int[] Fibonacci = { 1, 1, 2, 3, 5, 8 };
 
     private readonly List<BossFrame> frames = new List<BossFrame>();
+    private readonly List<BossFrame> roots = new List<BossFrame>();
     private readonly List<(BossFrame parent, int slot)> openSlots = new List<(BossFrame, int)>();
-    private float callTimer;
-    private float fireTimer;
-    private float beamTimer;
-    private float diveTimer;
+    private readonly Queue<float> memoCache = new Queue<float>();
+    private float[] activeSideStep;
+    private float callTimer, fireTimer, beamTimer, diveTimer, fibTimer, memoTimer, memoSampleTimer, growTimer;
+    private float callMultiplier = 1f;
+    private int fibIndex;
+    private int growRows;
+    private bool splitting;
     private Transform target;
     private Camera cam;
     private float driftTime;
-    private float baseX;
+    private float baseX, baseY;
     private bool defeated;
 
     private void Awake()
     {
         cam = Camera.main;
         baseX = transform.position.x;
-        Root = SpawnFrame(null, 0, Vector3.zero);
+        baseY = transform.position.y;
+        activeSideStep = sideStep;
+        BossFrame root = SpawnFrame(null, 0, Vector3.zero, maxDepth, rootHp, rootColor);
+        root.name = $"recurse({maxDepth})";
+        roots.Add(root);
         fireTimer = fireIntervalRange.x;
         beamTimer = beamIntervalRange.x;
         diveTimer = diveIntervalRange.x;
+        fibTimer = fibInterval;
+        memoTimer = memoInterval;
+        growTimer = growInterval;
     }
 
-    /// <summary>The developer, for aiming dives.</summary>
+    /// <summary>The developer, for aiming dives and caching positions.</summary>
     public void SetTarget(Transform player) => target = player;
 
-    /// <summary>0 at full root HP, 1 when nearly dead. Attacks speed up with it.</summary>
-    private float Anger => 1f - (float)Root.Hp / Root.MaxHp;
-
+    /// <summary>0 at full HP, 1 when nearly dead. Attacks speed up with it.</summary>
+    private float Anger => 1f - (float)Hp / MaxHp;
 
     private void Update()
     {
-        if (defeated || IsStunned) return;
+        if (defeated || IsStunned || splitting) return;
+        float dt = Time.deltaTime;
 
-        Drift();
+        Drift(dt);
 
-        callTimer += Time.deltaTime;
-        if (callTimer >= callInterval)
+        callTimer += dt;
+        float interval = callInterval * callMultiplier;
+        if (callTimer >= interval)
         {
-            callTimer -= callInterval;
+            callTimer -= interval;
             Call();
         }
 
-        fireTimer -= Time.deltaTime;
-        if (fireTimer <= 0f)
-        {
-            Fire();
-            fireTimer = Mathf.Lerp(fireIntervalRange.x, fireIntervalRange.y, Anger);
-        }
+        if (Tick(ref fireTimer, dt)) { FireSplitShot(); fireTimer = Mathf.Lerp(fireIntervalRange.x, fireIntervalRange.y, Anger); }
+        if (Tick(ref beamTimer, dt)) { FireBeam(); beamTimer = Mathf.Lerp(beamIntervalRange.x, beamIntervalRange.y, Anger); }
+        if (Tick(ref fibTimer, dt)) { FibonacciVolley(); fibTimer = fibInterval; }
 
-        beamTimer -= Time.deltaTime;
-        if (beamTimer <= 0f)
+        if (Phase >= 2)
         {
-            FireBeam();
-            beamTimer = Mathf.Lerp(beamIntervalRange.x, beamIntervalRange.y, Anger);
-        }
-
-        if (Anger >= 1f - diveHpThreshold && target != null)
-        {
-            diveTimer -= Time.deltaTime;
-            if (diveTimer <= 0f)
+            memoSampleTimer -= dt;
+            if (memoSampleTimer <= 0f && target != null)
+            {
+                memoSampleTimer = memoSampleInterval;
+                memoCache.Enqueue(target.position.x);
+                while (memoCache.Count > memoCacheSize) memoCache.Dequeue();
+            }
+            if (Tick(ref memoTimer, dt)) { StartCoroutine(MemoizedStrike()); memoTimer = memoInterval; }
+            if (Tick(ref growTimer, dt)) { GrowStack(); growTimer = growInterval; }
+            if (Tick(ref diveTimer, dt) && target != null)
             {
                 StartCoroutine(TailCallDive());
-                float t = Mathf.InverseLerp(1f - diveHpThreshold, 1f, Anger);
+                float t = Mathf.InverseLerp(1f - phase2At, 1f, Anger);
                 diveTimer = Mathf.Lerp(diveIntervalRange.x, diveIntervalRange.y, t);
             }
         }
     }
 
-    private void Drift()
+    private static bool Tick(ref float timer, float dt)
     {
-        driftTime += Time.deltaTime;
+        timer -= dt;
+        return timer <= 0f;
+    }
+
+    private void Drift(float dt)
+    {
+        driftTime += dt;
         float x = driftAmplitude * Mathf.Sin(driftTime * 2f * Mathf.PI / driftPeriod);
         x = Mathf.Round(x * pixelsPerUnit) / pixelsPerUnit; // stay on the pixel grid
         Vector3 p = transform.position;
@@ -201,7 +278,12 @@ public class RecursionBoss : MonoBehaviour, IBoss
 
         (BossFrame parent, int chosen) = openSlots[UnityEngine.Random.Range(0, openSlots.Count)];
         parent.UsedSlots.Add(chosen);
-        SpawnFrame(parent, chosen, SlotPosition(parent, chosen));
+        int direction = DirectionFor(parent, chosen);
+        int hp = direction == 0 ? shieldCloneHp : cloneHp; // the center column shields the root
+        int n = parent.N - 1;
+        Color color = n == 0 ? baseCaseColor : cloneColor;
+        BossFrame child = SpawnFrame(parent, chosen, SlotPosition(parent, chosen), n, hp, color);
+        child.name = $"recurse({n})";
     }
 
     private static IEnumerable<int> SlotsOf(BossFrame frame)
@@ -221,14 +303,16 @@ public class RecursionBoss : MonoBehaviour, IBoss
     private Vector3 SlotPosition(BossFrame parent, int slot)
     {
         int depth = parent.Depth + 1;
-        float x = parent.transform.localPosition.x;
+        Vector3 p = parent.SlotLocalPosition;
+        float step = activeSideStep[Mathf.Min(depth, activeSideStep.Length - 1)];
         switch (slot)
         {
-            case SlotLeft: x -= sideStep[depth]; break;
-            case SlotRight: x += sideStep[depth]; break;
-            case SlotSide: x += parent.Direction * sideStep[depth]; break;
+            case SlotLeft: p.x -= step; break;
+            case SlotRight: p.x += step; break;
+            case SlotSide: p.x += parent.Direction * step; break;
         }
-        return new Vector3(x, -depth * rowStep, 0f);
+        p.y -= rowStep;
+        return p;
     }
 
     private static int DirectionFor(BossFrame parent, int slot)
@@ -238,28 +322,30 @@ public class RecursionBoss : MonoBehaviour, IBoss
         return parent.Direction;
     }
 
-    private BossFrame SpawnFrame(BossFrame parent, int slot, Vector3 localPosition)
+    private BossFrame SpawnFrame(BossFrame parent, int slot, Vector3 localPosition, int n, int hp, Color color)
     {
         BossFrame frame = Instantiate(framePrefab, transform);
         frame.transform.localPosition = localPosition;
         frame.SlotLocalPosition = localPosition;
 
-        int depth = parent == null ? 0 : parent.Depth + 1;
-        int n = maxDepth - depth;
         bool root = parent == null;
-        Color color = root ? rootColor : n == 0 ? baseCaseColor : cloneColor;
-        frame.Init(this, parent, depth, n, root ? 0 : DirectionFor(parent, slot), root ? rootHp : cloneHp,
-                   root ? rootSprite : cloneSprite, digits[n], color, digitColor);
+        int depth = root ? 0 : parent.Depth + 1;
+        frame.Init(this, parent, depth, n, root ? 0 : DirectionFor(parent, slot), hp,
+                   root ? rootSprite : cloneSprite, digits[Mathf.Clamp(n, 0, digits.Length - 1)], color, digitColor);
         frame.SlotInParent = slot;
         frames.Add(frame);
         return frame;
     }
 
-    // ---------- Damage & unwinding ----------
+    // ---------- Damage, phases & unwinding ----------
 
     public void OnFrameDamaged(BossFrame frame)
     {
-        if (frame.IsRoot) HpChanged?.Invoke(Hp, MaxHp);
+        if (!frame.IsRoot) return;
+        HpChanged?.Invoke(Hp, MaxHp);
+        float fraction = (float)Hp / MaxHp;
+        if (Phase == 1 && fraction <= phase2At) Phase = 2;
+        if (Phase == 2 && fraction <= phase3At && Hp > 0 && !splitting) StartCoroutine(MutualSplit());
     }
 
     /// <summary>Destroys a frame and every call it made, deepest levels last.</summary>
@@ -287,12 +373,23 @@ public class RecursionBoss : MonoBehaviour, IBoss
                 frames.Remove(f);
             }
 
-        bool rootDown = frame.IsRoot;
-        if (rootDown) defeated = true;
-        StartCoroutine(PopLevels(levels, rootDown, returnValues && !rootDown));
+        bool lastRoot = false;
+        if (frame.IsRoot)
+        {
+            roots.Remove(frame);
+            HpChanged?.Invoke(Hp, MaxHp);
+            if (roots.Count == 0) { lastRoot = true; defeated = true; }
+            else
+            {
+                // Mutual recursion: the survivor calls twice as fast.
+                callMultiplier = survivorCallMultiplier;
+                LabelChanged?.Invoke(Label);
+            }
+        }
+        StartCoroutine(PopLevels(levels, lastRoot, returnValues && !frame.IsRoot));
     }
 
-    private IEnumerator PopLevels(List<List<BossFrame>> levels, bool rootDown, bool returnValues)
+    private IEnumerator PopLevels(List<List<BossFrame>> levels, bool lastRoot, bool returnValues)
     {
         var wait = new WaitForSeconds(unwindStepTime);
         foreach (List<BossFrame> level in levels)
@@ -305,7 +402,7 @@ public class RecursionBoss : MonoBehaviour, IBoss
             }
             yield return wait;
         }
-        if (rootDown) Defeated?.Invoke();
+        if (lastRoot) Defeated?.Invoke();
     }
 
     private IEnumerator StackOverflow()
@@ -317,12 +414,13 @@ public class RecursionBoss : MonoBehaviour, IBoss
 
         yield return new WaitForSeconds(overflowStunTime);
 
-        // The crash clears the deep part of the stack.
+        // The crash clears the deep part of the stack, and the stack shrinks back up.
         var deep = new List<BossFrame>();
         foreach (BossFrame f in frames)
             if (f.Depth == overflowUnwindDepth) deep.Add(f);
         foreach (BossFrame f in deep)
             if (!f.IsDead) Unwind(f, returnValues: false); // crashed calls never return
+        ResetStackGrowth();
 
         IsStunned = false;
         callTimer = 0f;
@@ -330,23 +428,171 @@ public class RecursionBoss : MonoBehaviour, IBoss
         LabelChanged?.Invoke(Label);
     }
 
+    /// <summary>
+    /// Phase 3: the call tree collapses and the root splits into isEven and isOdd, two
+    /// half-size trees that share the remaining HP.
+    /// </summary>
+    private IEnumerator MutualSplit()
+    {
+        splitting = true;
+        Phase = 3;
+        BossFrame old = roots[0];
+        int remaining = Mathf.Max(2, old.Hp);
+        old.MarkDead(); // untouchable while it splits, so it can't be killed mid-transition
+
+        // Everything below the root unwinds (no return values: this is a restructure, not a return).
+        foreach (BossFrame child in new List<BossFrame>(old.Children))
+            if (!child.IsDead) Unwind(child, returnValues: false);
+        LabelChanged?.Invoke("mutual recursion...");
+        old.Flash(splitTelegraphTime);
+        yield return new WaitForSeconds(splitTelegraphTime);
+
+        Vector3 at = old.transform.position;
+        roots.Remove(old);
+        frames.Remove(old);
+        if (unwindEffect != null) unwindEffect.Spawn(at, old.Color);
+        Destroy(old.gameObject);
+
+        activeSideStep = mutualSideStep;
+        ResetStackGrowth();
+        int half = Mathf.CeilToInt(remaining / 2f);
+        string[] names = { "isEven", "isOdd" };
+        float[] xs = { -mutualRootX, mutualRootX };
+        for (int i = 0; i < 2; i++)
+        {
+            BossFrame r = SpawnFrame(null, 0, new Vector3(xs[i], 0f, 0f), mutualDepth,
+                                     i == 0 ? half : remaining - half, mutualColor);
+            r.name = $"{names[i]}({mutualDepth})";
+            roots.Add(r);
+        }
+        HpChanged?.Invoke(Hp, MaxHp);
+        LabelChanged?.Invoke(Label);
+        callTimer = 0f;
+        splitting = false;
+    }
+
+    private void GrowStack()
+    {
+        if (growRows >= maxGrowRows) return;
+        growRows++;
+        Vector3 p = transform.position;
+        transform.position = new Vector3(p.x, baseY - growRows * rowStep, p.z);
+    }
+
+    private void ResetStackGrowth()
+    {
+        growRows = 0;
+        Vector3 p = transform.position;
+        transform.position = new Vector3(p.x, baseY, p.z);
+    }
+
     // ---------- Attacks ----------
+
+    private BossFrame RandomRoot() => roots.Count == 0 ? null : roots[UnityEngine.Random.Range(0, roots.Count)];
 
     /// <summary>An unwound frame "returns" its N: the digit falls straight down.</summary>
     private void ReturnValue(BossFrame frame)
     {
         SplitShot value = Instantiate(shotPrefab, frame.transform.position, Quaternion.identity);
-        value.Launch(frame, 0, Vector2.down, frame.Color, digits[frame.N], returnValueSpeedScale);
+        value.Launch(frame, 0, Vector2.down, frame.Color, digits[Mathf.Clamp(frame.N, 0, digits.Length - 1)], returnValueSpeedScale);
     }
 
-    /// <summary>The root marks its column, then fires a stack-trace beam down it.</summary>
+    private void FireSplitShot()
+    {
+        BossFrame shooter = RandomRoot();
+        if (frames.Count > roots.Count && UnityEngine.Random.value > rootFireChance)
+            shooter = frames[UnityEngine.Random.Range(0, frames.Count)];
+        if (shooter == null || shooter.IsDead) return;
+
+        Vector3 muzzle = shooter.transform.position + Vector3.down * 0.4f;
+        SplitShot shot = Instantiate(shotPrefab, muzzle, Quaternion.identity);
+        shot.Launch(shooter, Mathf.Min(shooter.N, maxShotSplits), Vector2.down, shooter.Color);
+    }
+
+    /// <summary>Fibonacci volley: 1, 1, 2, 3, 5, 8 shots in a fan, then the sequence repeats.</summary>
+    private void FibonacciVolley()
+    {
+        BossFrame shooter = RandomRoot();
+        if (shooter == null) return;
+        int count = Fibonacci[fibIndex];
+        string label = $"fib({fibIndex + 1})";
+        fibIndex = (fibIndex + 1) % Fibonacci.Length;
+
+        Vector3 muzzle = shooter.transform.position + Vector3.down * 0.6f;
+        for (int i = 0; i < count; i++)
+        {
+            float angle = count == 1 ? 0f : Mathf.Lerp(-fibSpread / 2f, fibSpread / 2f, i / (float)(count - 1));
+            Vector2 dir = Quaternion.Euler(0f, 0f, angle) * Vector2.down;
+            SplitShot shot = Instantiate(shotPrefab, muzzle, Quaternion.identity);
+            shot.Launch(shooter, 0, dir, mutualColor, speedScale: fibSpeedScale, label: label);
+        }
+    }
+
+    /// <summary>
+    /// Memoization: the boss caches where the developer has been, marks those spots on the
+    /// floor, then drops fast shots on the cached positions.
+    /// </summary>
+    private IEnumerator MemoizedStrike()
+    {
+        if (memoCache.Count == 0 || target == null) yield break;
+        var cached = new List<float>(memoCache);
+        float floorY = target.position.y;
+
+        var marks = new List<SpriteRenderer>();
+        foreach (float x in cached)
+        {
+            var mark = new GameObject("CacheHitMark").AddComponent<SpriteRenderer>();
+            mark.sprite = telegraphDot;
+            mark.color = baseCaseColor;
+            mark.sortingOrder = 3;
+            mark.transform.position = new Vector3(x, floorY - 0.7f, 0f);
+            marks.Add(mark);
+        }
+        for (float t = 0f; t < memoTelegraphTime; t += 0.1f)
+        {
+            foreach (SpriteRenderer m in marks) m.enabled = !m.enabled;
+            yield return new WaitForSeconds(0.1f);
+        }
+        foreach (SpriteRenderer m in marks) Destroy(m.gameObject);
+        if (defeated) yield break;
+
+        float top = cam.transform.position.y + cam.orthographicSize - 0.5f;
+        foreach (float x in cached)
+        {
+            SplitShot shot = Instantiate(shotPrefab, new Vector3(x, top, 0f), Quaternion.identity);
+            shot.Launch(null, 0, Vector2.down, baseCaseColor, speedScale: memoSpeedScale, label: "cache hit");
+        }
+    }
+
+    /// <summary>
+    /// A root marks its column, then fires a stack-trace beam down it. In phase 2 the beam
+    /// forks once partway down, in phase 3 twice (four branches) - the beam recurses too.
+    /// </summary>
     private void FireBeam()
     {
-        if (beamPrefab == null || Root == null || Root.IsDead) return;
-        float top = Root.transform.position.y - Root.GetComponent<SpriteRenderer>().bounds.extents.y;
+        BossFrame root = RandomRoot();
+        if (beamPrefab == null || root == null) return;
+        float top = root.transform.position.y - root.GetComponent<SpriteRenderer>().bounds.extents.y;
         float bottom = cam.transform.position.y - cam.orthographicSize;
-        StackTraceBeam beam = Instantiate(beamPrefab);
-        beam.Fire(Root.transform.position.x, top, bottom);
+        int forks = Phase - 1; // 0, 1, 2
+        BeamBranch(new Vector2(root.transform.position.x, top), Vector2.down, bottom, top - bottom, forks);
+    }
+
+    private void BeamBranch(Vector2 from, Vector2 dir, float bottom, float height, int forks)
+    {
+        if (forks <= 0)
+        {
+            // Run to the floor.
+            float t = (from.y - bottom) / Mathf.Max(0.01f, -dir.y);
+            Instantiate(beamPrefab).FireSegment(from, from + dir * t);
+            return;
+        }
+        // Go part of the way down, then fork left and right.
+        float segment = height / (forks + 1);
+        Vector2 fork = from + dir * (segment / Mathf.Max(0.01f, -dir.y));
+        Instantiate(beamPrefab).FireSegment(from, fork);
+        foreach (float a in new[] { -beamForkAngle, beamForkAngle })
+            BeamBranch(fork, Quaternion.Euler(0f, 0f, a) * dir, bottom, height - segment, forks - 1);
     }
 
     /// <summary>A clone marks a dotted path to the developer, then dives along it.</summary>
@@ -381,17 +627,5 @@ public class RecursionBoss : MonoBehaviour, IBoss
 
         if (diver != null && !diver.IsDead && !IsStunned && !defeated)
             diver.StartDive(aim, diveSpeed, diveReturnSpeed, cam);
-    }
-
-    private void Fire()
-    {
-        BossFrame shooter = Root;
-        if (frames.Count > 1 && UnityEngine.Random.value > rootFireChance)
-            shooter = frames[UnityEngine.Random.Range(1, frames.Count)];
-        if (shooter == null || shooter.IsDead) return;
-
-        Vector3 muzzle = shooter.transform.position + Vector3.down * 0.4f;
-        SplitShot shot = Instantiate(shotPrefab, muzzle, Quaternion.identity);
-        shot.Launch(shooter, shooter.N, Vector2.down, shooter.Color);
     }
 }
