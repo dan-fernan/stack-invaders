@@ -47,6 +47,10 @@ public class GameManager : MonoBehaviour
 
     [Header("Boons")]
     [SerializeField] private BoonManager boons;
+
+    [Header("Transitions")]
+    [Tooltip("Wave banner / boss warning played between stages.")]
+    [SerializeField] private StageTransition transition;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private SpriteRenderer playerSprite;
     [Tooltip("Gameplay scripts that only run while Playing.")]
@@ -68,8 +72,6 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Color loseColor = new Color32(0xf8, 0x51, 0x49, 0xff);
     [Tooltip("Seconds per character for the start screen's typing effect.")]
     [SerializeField] private float typeDelay = 0.02f;
-    [Tooltip("Seconds the between-waves terminal stays up.")]
-    [SerializeField] private float betweenWavesTime = 2f;
 
     private State state = State.Title;
     private Coroutine typing;
@@ -282,26 +284,32 @@ public class GameManager : MonoBehaviour
     {
         state = State.BetweenWaves;
         SetGameplayRunning(false);
+        screenPanel.SetActive(false);
         StartStage(stageIndex + 1);
-        Stage next = stages[stageIndex];
-        ShowScreen(
-            $"{passed} passed\n\n" +
-            next.intro +
-            $"\n\n{next.name} incoming...",
-            titleColor);
-        StartCoroutine(ResumeAfterBreak());
+        StartCoroutine(PlayTransition(stages[stageIndex]));
     }
 
-    private IEnumerator ResumeAfterBreak()
+    /// <summary>
+    /// Waves get a light banner while the formations march in; bosses get a warning.
+    /// The game stays paused (timeScale 0) until the transition finishes.
+    /// </summary>
+    private IEnumerator PlayTransition(Stage next)
     {
-        yield return new WaitForSecondsRealtime(betweenWavesTime);
+        string line = FirstLine(next.intro);
+        if (next.IsBoss)
+            yield return transition.PlayBossWarning(next.name, line, bossObject.transform);
+        else
+            yield return transition.PlayWave(
+                $"WAVE {next.waveIndex + 1}/{waveManager.WaveCount}", line, waveManager.ActiveFormationTransforms());
         if (state != State.BetweenWaves) yield break;
 
         state = State.Playing;
-        screenPanel.SetActive(false);
         SetGameplayRunning(true);
         ResetForStage();
     }
+
+    private static string FirstLine(string text) =>
+        string.IsNullOrEmpty(text) ? "" : text.Split('\n')[0];
 
     /// <summary>Fresh per-stage state: JIT heat, GC charge, JUnit shields.</summary>
     private void ResetForStage()

@@ -109,6 +109,14 @@ public class WaveManager : MonoBehaviour
         WaveStarted?.Invoke(index, waves.Length);
     }
 
+    /// <summary>The current wave's formations (for the entrance animation).</summary>
+    public Transform[] ActiveFormationTransforms()
+    {
+        var result = new Transform[active.Count];
+        for (int i = 0; i < active.Count; i++) result[i] = active[i].transform;
+        return result;
+    }
+
     /// <summary>Pauses or resumes marching and throwing for every active formation.</summary>
     public void SetRunning(bool run)
     {
