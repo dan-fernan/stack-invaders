@@ -27,10 +27,21 @@ public class BossHud : MonoBehaviour
     [SerializeField] private float trailSpeed = 0.6f;
     [Tooltip("Gap between side-by-side bars, in UI pixels.")]
     [SerializeField] private float multiBarGap = 4f;
+    [Tooltip("Background behind the single bar; hidden when split so each part shows its own track.")]
+    [SerializeField] private Image barBackground;
+    [SerializeField] private Color trackColor = new Color32(0x30, 0x36, 0x3d, 0xff);
+    [SerializeField] private Color partLabelColor = new Color32(0xc9, 0xd1, 0xd9, 0xff);
+    [SerializeField] private int partLabelSize = 10;
 
     private IBoss boss;
     private IMultiBarBoss multiBoss;
-    private readonly List<Image> partBars = new List<Image>();
+    private class PartBar
+    {
+        public Image track;
+        public Image fill;
+        public Text caption;
+    }
+    private readonly List<PartBar> partBars = new List<PartBar>();
     private float fraction = 1f;
     private float trailFraction = 1f;
     private float trailWait;
@@ -81,11 +92,25 @@ public class BossHud : MonoBehaviour
 
     private void OnLabel(string text) => label.text = text;
 
+    private bool IsSplit => multiBoss != null && multiBoss.BarCount > 1;
+
+    /// <summary>
+    /// While split, each bar's caption takes the label row; the shared label only comes back
+    /// for the stun message.
+    /// </summary>
+    private void UpdateLabelRow()
+    {
+        bool captions = IsSplit && !overflowing;
+        label.enabled = !captions;
+        foreach (PartBar part in partBars) part.caption.enabled = captions;
+    }
+
     private void OnStunned(bool active)
     {
         overflowing = active;
         if (!enabled) fillImage.color = active ? stunnedColor : fillColor;
-        foreach (Image bar in partBars) bar.color = active ? stunnedColor : fillColor;
+        foreach (PartBar bar in partBars) bar.fill.color = active ? stunnedColor : fillColor;
+        UpdateLabelRow();
     }
 
     private void Update()
@@ -103,7 +128,8 @@ public class BossHud : MonoBehaviour
 
     /// <summary>
     /// One bar per boss part. With a single part the normal bar (fill + damage trail) is
-    /// used; with several, it's hidden and replaced by equal-width bars with gaps between.
+    /// used; with several, it's hidden and replaced by equal-width bars, each on its own
+    /// track with a caption above it (in the label row) naming the part and its HP ("ping 12/35 HP").
     /// </summary>
     private void RefreshPartBars()
     {
@@ -111,32 +137,72 @@ public class BossHud : MonoBehaviour
         bool split = count > 1;
         fill.gameObject.SetActive(!split);
         trail.gameObject.SetActive(!split);
+        if (barBackground != null) barBackground.enabled = !split;
 
         while (partBars.Count < count && split) partBars.Add(CreatePartBar(partBars.Count));
-        float width = (barWidth - multiBarGap * (count - 1)) / count;
+        RectTransform bg = (RectTransform)fill.parent;
+        float trackWidth = (bg.sizeDelta.x - multiBarGap * (count - 1)) / count;
+        float fillWidth = trackWidth - 2f; // 1px border inside the track, like the single bar
         for (int i = 0; i < partBars.Count; i++)
         {
+            PartBar part = partBars[i];
             bool used = split && i < count;
-            partBars[i].gameObject.SetActive(used);
+            part.track.gameObject.SetActive(used);
             if (!used) continue;
             multiBoss.GetBar(i, out int hp, out int max);
-            var rect = partBars[i].rectTransform;
-            rect.anchoredPosition = new Vector2(fill.anchoredPosition.x + i * (width + multiBarGap), 0f);
-            rect.sizeDelta = new Vector2(Mathf.Round(Mathf.Clamp01((float)hp / max) * width), fill.sizeDelta.y);
-            partBars[i].color = overflowing ? stunnedColor : fillColor;
+
+            float x = Mathf.Round(i * (trackWidth + multiBarGap));
+            var trackRect = part.track.rectTransform;
+            trackRect.anchoredPosition = new Vector2(x, 0f);
+            trackRect.sizeDelta = new Vector2(Mathf.Round(trackWidth), bg.sizeDelta.y);
+            part.fill.rectTransform.sizeDelta = new Vector2(Mathf.Round(Mathf.Clamp01((float)hp / max) * fillWidth), fill.sizeDelta.y);
+            part.fill.color = overflowing ? stunnedColor : fillColor;
+            part.caption.rectTransform.sizeDelta = new Vector2(Mathf.Round(trackWidth), label.rectTransform.sizeDelta.y);
+            part.caption.text = multiBoss.GetBarLabel(i);
+            part.caption.color = hp > 0 ? partLabelColor : stunnedColor;
         }
+        UpdateLabelRow();
     }
 
-    private Image CreatePartBar(int index)
+    private PartBar CreatePartBar(int index)
     {
-        var go = new GameObject($"PartBar{index}", typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(fill.parent, false);
-        var rect = (RectTransform)go.transform;
-        rect.anchorMin = rect.anchorMax = fill.anchorMin;
-        rect.pivot = fill.pivot;
-        var image = go.GetComponent<Image>();
-        image.raycastTarget = false;
-        return image;
+        RectTransform bg = (RectTransform)fill.parent;
+        var part = new PartBar();
+
+        // Track: left-aligned in the background's area, same height.
+        var trackRect = NewRect($"PartTrack{index}", bg);
+        trackRect.anchorMin = trackRect.anchorMax = new Vector2(0f, 1f);
+        trackRect.pivot = new Vector2(0f, 1f);
+        part.track = trackRect.gameObject.AddComponent<Image>();
+        part.track.color = trackColor;
+        part.track.raycastTarget = false;
+
+        var fillRect = NewRect("Fill", trackRect);
+        fillRect.anchorMin = fillRect.anchorMax = fillRect.pivot = new Vector2(0f, 0.5f);
+        fillRect.anchoredPosition = new Vector2(1f, 0f);
+        part.fill = fillRect.gameObject.AddComponent<Image>();
+        part.fill.raycastTarget = false;
+
+        // Caption in the label row, centered over its own track.
+        var captionRect = NewRect("Caption", trackRect);
+        captionRect.anchorMin = captionRect.anchorMax = new Vector2(0.5f, 1f);
+        captionRect.pivot = new Vector2(0.5f, 0f);
+        captionRect.anchoredPosition = new Vector2(0f, 0f);
+        part.caption = captionRect.gameObject.AddComponent<Text>();
+        part.caption.font = label.font;
+        part.caption.fontSize = partLabelSize;
+        part.caption.alignment = TextAnchor.UpperCenter;
+        part.caption.horizontalOverflow = HorizontalWrapMode.Overflow;
+        part.caption.verticalOverflow = VerticalWrapMode.Overflow;
+        part.caption.raycastTarget = false;
+        return part;
+    }
+
+    private static RectTransform NewRect(string name, Transform parent)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        return (RectTransform)go.transform;
     }
 
     private void SetWidth(RectTransform bar, float f)

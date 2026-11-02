@@ -163,7 +163,9 @@ escalates through three phases as its 70 HP drop.
 - **Stack overflow.** More than 18 frames throws `StackOverflowError`: the boss freezes for 4 s
   (the health bar turns gray), then frames at depth 2 and below unwind without returning anything.
 - **Recursive split shot.** A frame fires a shot that splits in two every 0.45 s, up to 3 times.
-- **Fibonacci volley.** Every 4 s, a fan of 1, 1, 2, 3, 5, 8 shots, then the sequence repeats.
+- **Fibonacci volley.** Every 4 s, a fan of 1, 1, 2, 3, 5, 8 purple shots, then the sequence
+  repeats. They're **parry-only**: your shots pass through them, so dodge them or catch them with
+  the breakpoint to send them back.
 - **Stack-trace beam.** A root marks its column with a blinking outline, then fires a 1 s beam
   of scrolling stack-trace lines. Later phases fire several columns at once (below).
 
@@ -180,7 +182,8 @@ escalates through three phases as its 70 HP drop.
 **Phase 3 (33% HP): mutual recursion.** The tree collapses and the root splits into
 `ping(3)` and `pong(3)`, two half-size trees that share the remaining HP. The health bar splits
 into two side-by-side bars, `ping` on the left and `pong` on the right, matching their positions,
-and the label shows each (`ping 12 | pong 11`). Each is taken down like the original root, through its own shield column
+each on its own track with its caption above it (`ping 22/35 HP`, `pong 35/35 HP`; a dead one reads
+`pong returned`). The shared label returns only for `StackOverflowError!`. Each is taken down like the original root, through its own shield column
 while it's waiting on its calls. Kill one and the other calls twice as fast; kill both to win.
 The beam fires **four columns** at once.
 

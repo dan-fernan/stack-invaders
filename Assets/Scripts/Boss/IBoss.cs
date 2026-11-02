@@ -32,6 +32,8 @@ public interface IMultiBarBoss : IBoss
     event Action BarsChanged;
     int BarCount { get; }
     void GetBar(int index, out int hp, out int max);
+    /// <summary>Caption under bar <paramref name="index"/>, e.g. "ping 12/35 HP".</summary>
+    string GetBarLabel(int index);
 }
 
 /// <summary>

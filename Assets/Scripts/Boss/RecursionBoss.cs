@@ -150,6 +150,14 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
         max = r.MaxHp;
     }
 
+    public string GetBarLabel(int index)
+    {
+        if (mutualRoots.Count == 0) return "";
+        BossFrame r = mutualRoots[index];
+        string name = MutualNames[index];
+        return r.IsDead ? $"{name} returned" : $"{name} {Mathf.Max(0, r.Hp)}/{r.MaxHp} HP";
+    }
+
     /// <summary>Total HP of the living root(s).</summary>
     public int Hp
     {
@@ -170,8 +178,8 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
             if (IsStunned) return "StackOverflowError!";
             if (Phase < 3) return $"recurse({maxDepth})";
             if (splitting) return "mutual recursion...";
-            if (roots.Count == 2) return $"ping {roots[0].Hp} | pong {roots[1].Hp}";
-            return roots.Count == 1 ? $"{RootName(roots[0])} {roots[0].Hp}  (calls x2)" : "";
+            if (roots.Count == 2) return "ping <-> pong";
+            return roots.Count == 1 ? $"{RootName(roots[0]).Split('(')[0]}() alone: calls x2" : "";
         }
     }
 
@@ -567,6 +575,7 @@ public class RecursionBoss : MonoBehaviour, IMultiBarBoss
             Vector2 dir = Quaternion.Euler(0f, 0f, angle) * Vector2.down;
             SplitShot shot = Instantiate(shotPrefab, muzzle, Quaternion.identity);
             shot.Launch(shooter, 0, dir, mutualColor, speedScale: fibSpeedScale, label: label);
+            shot.MakeUnshootable(); // parry-only: shots pass through, so the breakpoint is the answer
         }
     }
 

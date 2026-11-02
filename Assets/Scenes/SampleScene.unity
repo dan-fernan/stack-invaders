@@ -854,6 +854,10 @@ MonoBehaviour:
   trailDelay: 0.4
   trailSpeed: 0.6
   multiBarGap: 4
+  barBackground: {fileID: 1507017920}
+  trackColor: {r: 0.1882353, g: 0.21176471, b: 0.23921569, a: 1}
+  partLabelColor: {r: 0.7882353, g: 0.81960785, b: 0.8509804, a: 1}
+  partLabelSize: 10
 --- !u!114 &599218882
 MonoBehaviour:
   m_ObjectHideFlags: 0
