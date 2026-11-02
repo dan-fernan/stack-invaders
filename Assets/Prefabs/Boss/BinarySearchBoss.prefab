@@ -70,6 +70,8 @@ MonoBehaviour:
   cannonTelegraphTime: 0.35
   cannonColor: {r: 0.972549, g: 0.31764707, b: 0.28627452, a: 1}
   linearRangeThreshold: 3
+  bruteForceCount: 4
+  bruteForceWindow: 1
   tauntFireMultiplier: 0.5
   wallPrefab: {fileID: 4816509895221299920, guid: b3844e0a9332440259056e14f207bdf2, type: 3}
   minRoom: 3

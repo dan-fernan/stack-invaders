@@ -106,10 +106,15 @@ Between waves 2 and 3. A bug hides in one cell of a 16-cell sorted array, and ev
 - **`IndexOutOfBounds` cannons.** Red `!` boxes sit just outside the array, at `arr[-1]` and
   `arr[16]`. They take turns flashing, then firing a shot aimed at the developer from the edge:
   every 4 s at full health, down to every 1.5 s near death. They can't be shot.
-- **Linear-search taunt.** Probing the cell right next to your previous probe while 3 or more cells
-  are still in range is something a binary search never does. The HUD flashes `O(n)!` and the
-  array fires twice as fast until the next re-sort. With only 2 cells left, probing the neighbor is
-  correct and isn't punished.
+- **`O(n)!` taunt.** The HUD flashes `O(n)!` and the array fires twice as fast until the next
+  re-sort. Two things trigger it:
+  - **Linear search:** aiming at the cell right next to your previous probe while 3 or more cells
+    are still in range, which a binary search never does. With only 2 cells left, probing the
+    neighbor is correct and isn't punished.
+  - **Brute force:** 4 or more comparisons within about a second, from your shots or Maven chains.
+    With only 16 cells, a random search isn't much worse than a binary search, so without this,
+    spamming a warm JIT (or Maven) would win. Careful play never triggers it; a single throw never
+    does either, even with Maven level 2 (3 comparisons). Parried shots are free and never count.
 - **Re-sort.** Running out of comparisons, or making a find, re-sorts the array: the bug moves and
   the hints clear. Running out also makes every live cell fire at once. Live cells drop shots
   meanwhile, faster as the boss weakens.
@@ -121,7 +126,8 @@ Between waves 2 and 3. A bug hides in one cell of a 16-cell sorted array, and ev
   incoming shots works too.
 - **Maven chains cut both ways.** A chained splash that lands on a cell is a real comparison: an
   extra hint, or even a lucky find, but it also spends budget and sets off the off-by-one shots.
-  It never triggers the linear-search taunt, though, since a random hop isn't your choice.
+  A random hop never counts as linear search, but chained comparisons do count toward brute force,
+  so a second Maven throw within a second triggers the taunt.
 
 Implementation: `BinarySearchBoss`, `SearchCell`, and movement limits in `PlayerController`.
 

@@ -15,9 +15,11 @@ using UnityEngine;
 ///   - Off-by-one: every probe makes the probed cell's two neighbors fire.
 ///   - IndexOutOfBounds: cannons at arr[-1] and arr[n] fire aimed shots in from the edges,
 ///     faster as the boss weakens.
-///   - Linear-search taunt: probing right next to your last probe while 3+ cells are still
-///     in range (something a binary search never does) flashes O(n)! and doubles the
-///     array's fire rate until the next re-sort.
+///   - O(n)! taunt (doubles the array's fire rate until the next re-sort), triggered by:
+///       * linear search: aiming right next to your last probe while 3+ cells remain
+///         (something a binary search never does), or
+///       * brute force: 4+ comparisons within about a second, aimed or Maven-chained.
+///         Careful play never hits this; spamming throws (or Maven spam) does.
 ///   - Parry: a parried shot that flies back into a cell is a free comparison (no budget,
 ///     no off-by-one, no taunt), so standing under a cell and parrying its shot tests it.
 ///   - Maven chains: a chained splash on a cell is a real comparison (budget, off-by-one),
@@ -71,6 +73,9 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     [Header("Linear-search taunt")]
     [Tooltip("Probing next to the previous probe while at least this many cells are in range counts as linear search.")]
     [SerializeField] private int linearRangeThreshold = 3;
+    [Tooltip("Brute force: this many comparisons (aimed or chained) within bruteForceWindow seconds taunts.")]
+    [SerializeField] private int bruteForceCount = 4;
+    [SerializeField] private float bruteForceWindow = 1f;
     [Tooltip("Fire-interval multiplier while taunting (0.5 = twice as fast).")]
     [SerializeField] private float tauntFireMultiplier = 0.5f;
 
@@ -113,6 +118,7 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     private int comparisonsUsed;
     private int lastProbe = -1;
     private bool taunting;
+    private readonly System.Collections.Generic.Queue<float> recentComparisons = new System.Collections.Generic.Queue<float>();
     private bool resorting;
     private bool defeated;
     private float fireTimer;
@@ -221,6 +227,12 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         {
             comparisonsUsed++;
 
+            // Brute force: too many comparisons too fast, whoever made them (spam or Maven chains).
+            recentComparisons.Enqueue(Time.time);
+            while (recentComparisons.Count > 0 && Time.time - recentComparisons.Peek() > bruteForceWindow)
+                recentComparisons.Dequeue();
+            if (recentComparisons.Count >= bruteForceCount) taunting = true;
+
             // Linear search: a binary search never probes next to its last probe while 3+ cells
             // remain. Only the player's own aimed probes count; a Maven hop isn't their choice.
             if (source == ProbeSource.Aimed)
@@ -320,6 +332,7 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         comparisonsUsed = 0;
         lastProbe = -1;
         taunting = false;
+        recentComparisons.Clear();
         Array.Clear(probed, 0, probed.Length);
         foreach (SearchCell c in cells) c.Show(unknownGlyph, unknownColor, true);
         OpenWalls();
