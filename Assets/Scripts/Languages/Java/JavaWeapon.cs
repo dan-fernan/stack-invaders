@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 /// consecutive throw raises "heat" so the next one comes sooner, like the JVM
 /// optimizing hot code. Stop throwing and the JIT cools back down.
 /// </summary>
-public class JavaWeapon : MonoBehaviour
+public class JavaWeapon : MonoBehaviour, IStageReset
 {
     [SerializeField] private CoffeeCup cupPrefab;
     [Tooltip("Where cups are thrown from (the developer's throwing hand).")]
@@ -32,6 +32,13 @@ public class JavaWeapon : MonoBehaviour
     /// <summary>0 = cold, 1 = fully optimized.</summary>
     public float Heat { get; private set; }
 
+    /// <summary>Spring Boot boon: multiplies the heat each throw adds.</summary>
+    public float HeatGainMultiplier { get; set; } = 1f;
+
+    /// <summary>Maven boon: chained splashes per cup (0 = none) and their radius.</summary>
+    public int ChainCount { get; set; }
+    public float ChainRadius { get; set; } = 0.35f;
+
     /// <summary>Raised only when the visible heat bar changes (filled segments, total).</summary>
     public event Action<int, int> HeatSegmentsChanged;
 
@@ -39,8 +46,10 @@ public class JavaWeapon : MonoBehaviour
     private float lastThrowTime = float.NegativeInfinity;
     private int shownSegments = -1;
 
-    // Enabled at the start of each wave: the JIT starts cold again.
-    private void OnEnable()
+    private void OnEnable() => PublishHeat(force: true);
+
+    /// <summary>Each stage starts with a cold JIT (pausing and resuming doesn't reset it).</summary>
+    public void ResetForStage()
     {
         Heat = 0f;
         nextThrowTime = 0f;
@@ -68,11 +77,12 @@ public class JavaWeapon : MonoBehaviour
 
     private void Throw()
     {
-        Instantiate(cupPrefab, throwPoint.position, Quaternion.identity);
+        CoffeeCup cup = Instantiate(cupPrefab, throwPoint.position, Quaternion.identity);
+        cup.SetChain(ChainCount, ChainRadius);
         if (animator != null) animator.PlayThrow();
         nextThrowTime = Time.time + Mathf.Lerp(coldCooldown, hotCooldown, Heat);
         lastThrowTime = Time.time;
-        Heat = Mathf.Min(1f, Heat + 1f / throwsToWarm);
+        Heat = Mathf.Min(1f, Heat + HeatGainMultiplier / throwsToWarm);
     }
 
     private void PublishHeat(bool force)

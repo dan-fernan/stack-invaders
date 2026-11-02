@@ -9,7 +9,7 @@ using UnityEngine;
 /// hostile bit on screen. Collected bits pop and fly home harmlessly, where their
 /// bug rebuilds.
 /// </summary>
-public class GarbageCollector : MonoBehaviour
+public class GarbageCollector : MonoBehaviour, IStageReset
 {
     [Tooltip("Seconds to charge before the GC is ready.")]
     [SerializeField] private float chargeTime = 10f;
@@ -30,8 +30,11 @@ public class GarbageCollector : MonoBehaviour
     // Copy of the active set, since collecting a bit modifies it.
     private readonly List<BitProjectile> toCollect = new List<BitProjectile>();
 
-    // Enabled at the start of each wave: the GC starts charging again.
-    private void OnEnable()
+    // Republish the countdown whenever gameplay resumes (the HUD may have just appeared).
+    private void OnEnable() => shownSeconds = -1;
+
+    /// <summary>Each stage starts with the GC charging again.</summary>
+    public void ResetForStage()
     {
         timeLeft = chargeTime;
         shownSeconds = -1;

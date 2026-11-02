@@ -176,6 +176,28 @@ description (weapon, passive, ability), an optional held-item sprite, the script
 it's chosen, and an optional HUD. Adding Python or C++ means
 writing their scripts and filling in a new entry; `GameManager` doesn't change.
 
+### Boons (floppy disk drops)
+
+Language-specific power-ups that work like Hades boons: permanent for the run, and
+picking one you already have levels it up.
+
+- **Drops:** wave *n* drops *n* floppy disks (1 + 2 + 3 = 6 per run), spread evenly over its
+  kills. Disks fall from the bug that dropped them and rest on the floor until you walk over them.
+  Any still on the floor when the wave ends are collected automatically. Bosses don't drop disks.
+- **Install:** picking up a disk pauses on `Floppy disk found!  $ install --dependency`, offering
+  up to 3 of your language's boons that aren't maxed yet (W/S or 1–3, Space to install).
+- **HUD:** installed boons and levels show under the hearts, e.g. `SB2 JU1 MV1`.
+
+| Java boon | Lv 1 | Lv 2 | Lv 3 |
+| --- | --- | --- | --- |
+| **Spring Boot**: manages your beans | JIT heats up 1.5× faster | 2× | 3× |
+| **JUnit**: tests catch bugs before they ship | Catches 1 hit per stage (green ✓ over your head, `Test passed: bug caught`) | Catches 2 hits per stage | – |
+| **Maven**: transitive dependencies | Each splash chains a small splash to 1 more nearby bug it didn't hit | Chains to 2 more | Chained splashes are full size |
+
+JIT heat, the GC charge and JUnit's tests reset at the start of each stage, not when the game
+pauses for an install. Implementation: `BoonManager`, `FloppyDisk`, `BoonDefinition` (a language's
+pool lives on its `LanguageOption`), `JavaBoons`, and `ChainSplash` (Maven).
+
 ## Code issues in the instructor's project
 
 Reviewed at commit `ba66d3e` of
@@ -316,8 +338,9 @@ Assets/
     Player/                   PlayerController (move + clamp), PlayerHealth, BreakpointParry,
                               PlayerShooter + Bullet (generic blaster, not in the scene; base for Python)
     Boss/                     IBoss, BinarySearchBoss, SearchCell, RecursionBoss, BossFrame, SplitShot, StackTraceBeam
+    Boons/                    BoonManager, FloppyDisk, BoonDefinition
     Languages/                LanguageSelect, LanguageOption
-      Java/                   JavaWeapon (coffee throw + JIT), CoffeeCup, GarbageCollector
+      Java/                   JavaWeapon (coffee throw + JIT), CoffeeCup, GarbageCollector, JavaBoons, ChainSplash
     Aliens/                   WaveManager (waves of formations), AlienFormation (layout, lane, march, speed-up),
                               Alien, FleetThrower, BitProjectile
     UI/                       HeartsDisplay, JavaHud, WaveHud, BossHud, FloatingText

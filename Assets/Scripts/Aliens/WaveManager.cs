@@ -43,6 +43,11 @@ public class WaveManager : MonoBehaviour
     public event Action<int, int> WaveCleared;
     /// <summary>(index, total) when a wave spawns.</summary>
     public event Action<int, int> WaveStarted;
+    /// <summary>A bug in the current wave died, at this position.</summary>
+    public event Action<Vector3> BugKilled;
+
+    /// <summary>Bugs the current wave started with.</summary>
+    public int CurrentWaveBugCount { get; private set; }
 
     public int WaveCount => waves.Length;
     public int CurrentWave { get; private set; } = -1;
@@ -81,6 +86,8 @@ public class WaveManager : MonoBehaviour
     {
         CurrentWave = index;
         Wave wave = waves[index];
+        CurrentWaveBugCount = 0;
+        foreach (FormationSpawn f in wave.formations) CurrentWaveBugCount += f.rowLayout.Length * f.columns;
         var spawned = new AlienFormation[wave.formations.Length];
 
         for (int i = 0; i < wave.formations.Length; i++)
@@ -93,6 +100,7 @@ public class WaveManager : MonoBehaviour
             formation.GetComponent<FleetThrower>().Init(player, spec.throwIntervalMultiplier);
             formation.Stepped += OnFormationStepped;
             formation.Cleared += OnFormationCleared;
+            formation.AlienKilled += OnAlienKilled;
             spawned[i] = formation;
             active.Add(formation);
         }
@@ -114,6 +122,8 @@ public class WaveManager : MonoBehaviour
 
     private void OnFormationStepped(AlienFormation formation) => Stepped?.Invoke();
 
+    private void OnAlienKilled(Alien alien) => BugKilled?.Invoke(alien.transform.position);
+
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
     /// <summary>Debug only: kills every bug in the current wave.</summary>
     public void DebugClearWave()
@@ -127,6 +137,7 @@ public class WaveManager : MonoBehaviour
     {
         formation.Stepped -= OnFormationStepped;
         formation.Cleared -= OnFormationCleared;
+        formation.AlienKilled -= OnAlienKilled;
         active.Remove(formation);
         Destroy(formation.gameObject);
 

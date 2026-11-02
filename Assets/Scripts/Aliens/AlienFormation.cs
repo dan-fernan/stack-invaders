@@ -57,6 +57,9 @@ public class AlienFormation : MonoBehaviour
     /// <summary>Raised after every march step (the only time the formation moves).</summary>
     public event Action<AlienFormation> Stepped;
 
+    /// <summary>Raised when one of this formation's aliens dies (before it's removed).</summary>
+    public event Action<Alien> AlienKilled;
+
     public int AliveCount => aliens.Count;
 
     /// <summary>Living aliens (including thrown ones) as a fraction of the starting count.</summary>
@@ -276,6 +279,7 @@ public class AlienFormation : MonoBehaviour
     private void OnAlienKilled(Alien alien)
     {
         alien.Killed -= OnAlienKilled;
+        AlienKilled?.Invoke(alien);
         aliens.Remove(alien);
         grid[alien.Row, alien.Column] = null;
         if (aliens.Count == 0) Cleared?.Invoke(this);

@@ -18,7 +18,7 @@ using UnityEngine.UI;
 [DefaultExecutionOrder(-100)] // freeze gameplay before anything else starts
 public class GameManager : MonoBehaviour
 {
-    private enum State { Title, Playing, BetweenWaves, GameOver, Won }
+    private enum State { Title, Playing, BetweenWaves, Choosing, GameOver, Won }
 
     /// <summary>One step of the run: a wave of formations, or a boss.</summary>
     [Serializable]
@@ -44,6 +44,9 @@ public class GameManager : MonoBehaviour
     [SerializeField] private BossHud bossHud;
     [Tooltip("Hidden while the boss HUD is shown.")]
     [SerializeField] private GameObject waveHud;
+
+    [Header("Boons")]
+    [SerializeField] private BoonManager boons;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private SpriteRenderer playerSprite;
     [Tooltip("Gameplay scripts that only run while Playing.")]
@@ -76,6 +79,7 @@ public class GameManager : MonoBehaviour
     private int stageIndex;
     private GameObject bossObject;
     private IBoss boss;
+    private Action afterChoosing;
 
     private void Awake()
     {
@@ -95,6 +99,7 @@ public class GameManager : MonoBehaviour
     {
         waveManager.Stepped += CheckInvasion;
         waveManager.WaveCleared += OnWaveCleared;
+        boons.DiskPickedUp += OnDiskPickedUp;
         playerHealth.Died += OnPlayerDied;
     }
 
@@ -102,6 +107,7 @@ public class GameManager : MonoBehaviour
     {
         waveManager.Stepped -= CheckInvasion;
         waveManager.WaveCleared -= OnWaveCleared;
+        boons.DiskPickedUp -= OnDiskPickedUp;
         playerHealth.Died -= OnPlayerDied;
     }
 
@@ -140,6 +146,11 @@ public class GameManager : MonoBehaviour
                 if (kb.spaceKey.wasPressedThisFrame) FinishTyping(); // skip the animation
                 break;
 
+            case State.Choosing:
+                if (boons.HandleInput(kb, out bool offerChanged)) OnBoonInstalled();
+                else if (offerChanged) ShowScreen(boons.RenderOffer(), titleColor);
+                break;
+
             case State.Title:
                 if (languageSelect.HandleInput(kb, out LanguageOption chosen, out bool changed))
                     StartGame(chosen);
@@ -165,9 +176,13 @@ public class GameManager : MonoBehaviour
         // HUD first, so it is subscribed before the weapon publishes its initial state.
         if (chosen.hud != null) chosen.hud.SetActive(true);
 
+        boons.SetLanguage(chosen);
+        boons.BeginWave(stages[stageIndex].waveIndex);
+
         state = State.Playing;
         screenPanel.SetActive(false);
         SetGameplayRunning(true);
+        ResetForStage();
     }
 
     private void CheckInvasion()
@@ -213,10 +228,13 @@ public class GameManager : MonoBehaviour
         if (!stage.IsBoss)
         {
             waveManager.StartWave(stage.waveIndex);
+            boons.BeginWave(stage.waveIndex);
             waveHud.SetActive(true);
             bossHud.gameObject.SetActive(false);
             return;
         }
+
+        boons.BeginBoss();
 
         bossObject = Instantiate(stage.bossPrefab, stage.bossPosition, Quaternion.identity);
         boss = bossObject.GetComponent<IBoss>();
@@ -250,6 +268,18 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        // Disks left on the floor are collected; offer them before the break.
+        boons.CollectRemaining();
+        if (boons.PendingOffers > 0)
+        {
+            BeginChoosing(() => ContinueToNextStage(passed));
+            return;
+        }
+        ContinueToNextStage(passed);
+    }
+
+    private void ContinueToNextStage(string passed)
+    {
         state = State.BetweenWaves;
         SetGameplayRunning(false);
         StartStage(stageIndex + 1);
@@ -269,7 +299,57 @@ public class GameManager : MonoBehaviour
 
         state = State.Playing;
         screenPanel.SetActive(false);
-        // Re-enabling the language scripts resets per-stage state (JIT heat, GC timer).
+        SetGameplayRunning(true);
+        ResetForStage();
+    }
+
+    /// <summary>Fresh per-stage state: JIT heat, GC charge, JUnit shields.</summary>
+    private void ResetForStage()
+    {
+        playerHealth.RefillShields();
+        if (language == null) return;
+        foreach (MonoBehaviour behaviour in language.behaviours)
+            if (behaviour is IStageReset reset) reset.ResetForStage();
+    }
+
+    // ---------- Boons ----------
+
+    private void OnDiskPickedUp()
+    {
+        if (state != State.Playing) return;
+        BeginChoosing(ResumeFromChoosing);
+    }
+
+    /// <summary>Pauses on the install prompt; runs <paramref name="after"/> once all pending disks are used.</summary>
+    private void BeginChoosing(Action after)
+    {
+        if (!boons.PrepareOffer())
+        {
+            after();
+            return;
+        }
+        afterChoosing = after;
+        state = State.Choosing;
+        SetGameplayRunning(false);
+        ShowScreen(boons.RenderOffer(), titleColor);
+    }
+
+    private void OnBoonInstalled()
+    {
+        if (boons.PendingOffers > 0 && boons.PrepareOffer())
+        {
+            ShowScreen(boons.RenderOffer(), titleColor);
+            return;
+        }
+        Action next = afterChoosing;
+        afterChoosing = null;
+        next?.Invoke();
+    }
+
+    private void ResumeFromChoosing()
+    {
+        state = State.Playing;
+        screenPanel.SetActive(false);
         SetGameplayRunning(true);
     }
 

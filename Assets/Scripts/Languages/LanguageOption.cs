@@ -28,4 +28,10 @@ public class LanguageOption
     public MonoBehaviour[] behaviours;
     [Tooltip("Language-specific HUD (e.g. Java's JIT/GC meter). Optional.")]
     public GameObject hud;
+
+    [Header("Boons (floppy disk drops)")]
+    [Tooltip("This language's boon pool.")]
+    public BoonDefinition[] boons;
+    [Tooltip("Component implementing IBoonReceiver that applies this language's boons.")]
+    public MonoBehaviour boonReceiver;
 }

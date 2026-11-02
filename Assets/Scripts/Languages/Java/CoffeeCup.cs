@@ -18,6 +18,11 @@ public class CoffeeCup : MonoBehaviour
     [SerializeField] private Sprite[] tumbleFrames;
     [SerializeField] private float tumbleFps = 12f;
 
+    [Header("Maven chain (set per throw by the weapon)")]
+    [Tooltip("How far a chained splash can hop from the previous one.")]
+    [SerializeField] private float chainSearchRadius = 2.5f;
+    [SerializeField] private float chainDelay = 0.12f;
+
     // Reused between smashes to avoid allocating a new results list each time.
     private static readonly List<Collider2D> Hits = new List<Collider2D>();
 
@@ -25,6 +30,15 @@ public class CoffeeCup : MonoBehaviour
     private SpriteRenderer spriteRenderer;
     private float age;
     private bool smashed;
+    private int chainCount;
+    private float chainRadius;
+
+    /// <summary>Maven boon: after smashing, chain this many smaller splashes to nearby bugs.</summary>
+    public void SetChain(int count, float radius)
+    {
+        chainCount = count;
+        chainRadius = radius;
+    }
 
     private void Awake()
     {
@@ -59,13 +73,17 @@ public class CoffeeCup : MonoBehaviour
 
         Hits.Clear();
         Physics2D.OverlapCircle(center, splashRadius, ContactFilter2D.noFilter, Hits);
+        var hitTargets = new HashSet<IShootable>();
         foreach (Collider2D hit in Hits)
         {
-            if (hit.TryGetComponent(out IShootable target))
+            if (hit.TryGetComponent(out IShootable target) && hitTargets.Add(target))
                 target.OnShot();
         }
 
         splashEffect.Spawn(center, splashColor);
+        if (chainCount > 0)
+            ChainSplash.Begin(center, hitTargets, chainCount, chainRadius, chainSearchRadius,
+                              chainDelay, splashEffect, splashColor);
         Destroy(gameObject);
     }
 }
