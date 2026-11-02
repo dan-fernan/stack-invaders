@@ -1809,6 +1809,8 @@ MonoBehaviour:
   coolDelay: 0.6
   coolRate: 0.7
   heatSegments: 10
+  breakpoint: {fileID: 982252455}
+  deoptimizeFraction: 0.5
   extraShotOffset: 0.5
 --- !u!114 &982252455
 MonoBehaviour:
@@ -2668,6 +2670,7 @@ MonoBehaviour:
   jitLabel: {fileID: 1939794973}
   gcLabel: {fileID: 1074964048}
   collectedMessageTime: 1
+  deoptimizedMessageTime: 0.6
 --- !u!114 &1939794973
 MonoBehaviour:
   m_ObjectHideFlags: 0

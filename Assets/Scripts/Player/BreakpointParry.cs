@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -27,6 +28,12 @@ public class BreakpointParry : MonoBehaviour
     [SerializeField] private Color cooldownColor = new Color32(0x48, 0x4f, 0x58, 0xff);
     [SerializeField] private FloatingText popupPrefab;
     [SerializeField] private RectTransform popupCanvas;
+
+    /// <summary>
+    /// Shift was pressed and the breakpoint set (whether or not it catches anything).
+    /// Languages can react: Java's JIT deoptimizes.
+    /// </summary>
+    public event Action BreakpointSet;
 
     private float windowEnd;
     private float readyTime;
@@ -73,6 +80,7 @@ public class BreakpointParry : MonoBehaviour
         windowOpen = true;
         windowEnd = Time.time + window;
         catches = 0;
+        BreakpointSet?.Invoke();
     }
 
     private void Close()

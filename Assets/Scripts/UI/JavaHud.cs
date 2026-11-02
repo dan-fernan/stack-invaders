@@ -16,12 +16,16 @@ public class JavaHud : MonoBehaviour
     [SerializeField] private Text jitLabel;
     [SerializeField] private Text gcLabel;
     [SerializeField] private float collectedMessageTime = 1f;
+    [SerializeField] private float deoptimizedMessageTime = 0.6f;
 
     private Coroutine message;
+    private Coroutine jitMessage;
+    private int heatFilled, heatTotal;
 
     private void OnEnable()
     {
         weapon.HeatSegmentsChanged += OnHeat;
+        weapon.Deoptimized += OnDeoptimized;
         gc.SecondsLeftChanged += OnGcSeconds;
         gc.Collected += OnCollected;
     }
@@ -29,13 +33,36 @@ public class JavaHud : MonoBehaviour
     private void OnDisable()
     {
         weapon.HeatSegmentsChanged -= OnHeat;
+        weapon.Deoptimized -= OnDeoptimized;
         gc.SecondsLeftChanged -= OnGcSeconds;
         gc.Collected -= OnCollected;
+        // A message cut short by disabling (its coroutine stops too) falls back to the bar.
+        if (jitMessage != null) { jitMessage = null; ShowHeat(); }
     }
 
     private void OnHeat(int filled, int total)
     {
-        jitLabel.text = "JIT [" + new string('#', filled) + new string('-', total - filled) + "]";
+        heatFilled = filled;
+        heatTotal = total;
+        if (jitMessage == null) ShowHeat();
+    }
+
+    private void ShowHeat() =>
+        jitLabel.text = "JIT [" + new string('#', heatFilled) + new string('-', heatTotal - heatFilled) + "]";
+
+    private void OnDeoptimized()
+    {
+        if (jitMessage != null) StopCoroutine(jitMessage);
+        jitMessage = StartCoroutine(ShowDeoptimized());
+    }
+
+    /// <summary>The bar briefly reads "deoptimized", then shows the reduced heat.</summary>
+    private IEnumerator ShowDeoptimized()
+    {
+        jitLabel.text = "JIT deoptimized";
+        yield return new WaitForSeconds(deoptimizedMessageTime);
+        jitMessage = null;
+        ShowHeat();
     }
 
     private void OnGcSeconds(int seconds)

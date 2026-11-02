@@ -6,6 +6,8 @@ using UnityEngine.InputSystem;
 /// Java: throws coffee cups. JIT warmup: the first throws are slow, and every
 /// consecutive throw raises "heat" so the next one comes sooner, like the JVM
 /// optimizing hot code. Stop throwing and the JIT cools back down.
+/// Setting a breakpoint (the parry) deoptimizes: like a real JVM throwing away compiled
+/// code to debug it, each breakpoint costs a share of the heat.
 /// </summary>
 public class JavaWeapon : MonoBehaviour, IStageReset, IMultiShotWeapon
 {
@@ -28,6 +30,16 @@ public class JavaWeapon : MonoBehaviour, IStageReset, IMultiShotWeapon
     [SerializeField] private float coolRate = 0.7f;
     [Tooltip("Number of segments in the HUD heat bar.")]
     [SerializeField] private int heatSegments = 10;
+
+    [Header("Deoptimization")]
+    [Tooltip("The breakpoint parry; setting a breakpoint deoptimizes the JIT.")]
+    [SerializeField] private BreakpointParry breakpoint;
+    [Tooltip("Fraction of the current heat lost each time a breakpoint is set.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float deoptimizeFraction = 0.5f;
+
+    /// <summary>A breakpoint knocked heat off the JIT.</summary>
+    public event Action Deoptimized;
 
     /// <summary>0 = cold, 1 = fully optimized.</summary>
     public float Heat { get; private set; }
@@ -53,7 +65,25 @@ public class JavaWeapon : MonoBehaviour, IStageReset, IMultiShotWeapon
     private float lastThrowTime = float.NegativeInfinity;
     private int shownSegments = -1;
 
-    private void OnEnable() => PublishHeat(force: true);
+    private void OnEnable()
+    {
+        if (breakpoint != null) breakpoint.BreakpointSet += Deoptimize;
+        PublishHeat(force: true);
+    }
+
+    private void OnDisable()
+    {
+        if (breakpoint != null) breakpoint.BreakpointSet -= Deoptimize;
+    }
+
+    /// <summary>One breakpoint, one deoptimization (catching several shots in the window doesn't stack).</summary>
+    private void Deoptimize()
+    {
+        if (Heat <= 0f) return;
+        Heat *= 1f - deoptimizeFraction;
+        PublishHeat(force: false);
+        Deoptimized?.Invoke();
+    }
 
     /// <summary>Each stage starts with a cold JIT (pausing and resuming doesn't reset it).</summary>
     public void ResetForStage()

@@ -85,6 +85,8 @@ Every language gets the same native parry: the developer sets a breakpoint.
    A parried boss shot flies back up and hits the first boss part it touches.
 4. A successful window has no cooldown, so you can catch the 0 and then the 1. A window that
    catches nothing detaches the debugger for 1 s, shown by a gray dot.
+5. **Cost (Java):** setting a breakpoint deoptimizes the JIT, halving its heat (see Languages).
+   The parry is never free: each press slows your throws until the JIT warms back up.
 
 This rewards timing over constant movement without adding damage: in the waves it only defends. Implementation: `BreakpointParry`, `BitProjectile.StepInto()`,
 and the pop-up text in `FloatingText`. The spec's *Breakpoint* powerup (freeze
@@ -203,7 +205,7 @@ page has no picker and SPACE runs Java directly.
 | Java mechanic | How it works | Where |
 | --- | --- | --- |
 | Coffee throw | Holding Space throws coffee cups (9 units/s, slower than a bullet). A cup smashes on the first thing it touches and splashes everything within 0.7 units. Hitting a bug from below, that's the bug plus its left and right neighbors. The splash also destroys bits. | `CoffeeCup`, `JavaWeapon` |
-| JIT warmup | The first throws are slow (0.8 s apart). Each consecutive throw adds heat, so after six throws they come every 0.25 s, like the JVM optimizing hot code. Holding Space keeps the JIT warm, even during a slow cold wait. Release it for more than 0.6 s and it cools back down at 0.7 heat per second (fully hot to cold in about 1.4 s). | `JavaWeapon.Heat` |
+| JIT warmup | The first throws are slow (0.8 s apart). Each consecutive throw adds heat, so after six throws they come every 0.25 s, like the JVM optimizing hot code. Holding Space keeps the JIT warm, even during a slow cold wait. Release it for more than 0.6 s and it cools back down at 0.7 heat per second (fully hot to cold in about 1.4 s). **Breakpoints deoptimize:** each press of Shift halves the current heat, like a real JVM discarding compiled code to debug it (the meter briefly reads `JIT deoptimized`). It's charged once per press, however many shots that window catches, so parrying trades offense for defense. | `JavaWeapon.Heat`, `JavaWeapon.Deoptimize()` |
 | Garbage collector | Like the real JVM, it runs when there's garbage to collect, not on a fixed clock. It charges for 10 s (`GC 7s`), then waits (`GC ready`) until a hostile bit comes within 3 units of the developer. Then every hostile bit on screen pops and flies home harmlessly, where its bug rebuilds, and the GC recharges. | `GarbageCollector`, `BitProjectile.Collect()` |
 | HUD | Two short lines in the top-right corner, kept narrow so they never reach the centered wave or boss HUD: `JIT [######----]`, and under it `GC 7s`, `GC ready`, or `freed N bits` after a collection. The text is only rebuilt when a value changes (see code issue 1). | `JavaHud` |
 
