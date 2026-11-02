@@ -40,7 +40,7 @@ instructor's code and documenting how this project handles each one instead (see
 | --- | --- | --- |
 | Better graphics for aliens and ship | ✅ | Original pixel art. **The developer** (16×20, `PlayerAnimator`): red headphones, green hoodie and glasses, with a breathing idle seen from behind, a 4-frame sideways run (mirrored for left, driven by actual movement, so being pushed by a wall doesn't play the run), and a wind-up / release / follow-through throw where the hand really lets go of the mug. **Java's coffee** is a mug that tumbles through 2 frames, sloshing coffee. Also three bug types (beetle, ladybug, spider) with two-frame walk animations, bullets, and hearts. 16 pixels per unit, point filtering, and a Pixel Perfect Camera at 320×180. |
 | Lives with a display | ✅ | Three pixel-art hearts in the top-left (`PlayerHealth`, `HeartsDisplay`). The fleet's bit attack (below) removes one heart per hit, followed by 1 s of invulnerability while the ship blinks. Running out of hearts ends the game. |
-| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 175 warnings (bugs) and 2 errors (bosses)`; Space skips the typing. The log then collapses to one line, and a language select menu appears (W/S or 1–3 to choose, Space to run). It describes the highlighted language: its weapon, passive and ability (for Java: `coffee cup: splash hits 3 bugs`, `JIT: hold fire to throw faster`, `GC: auto-frees bits near you`), plus the breakpoint parry every language shares. **Between waves:** a 2 s terminal break (`$ git pull origin feature/more-bugs …`). **Win** (after the final boss): `BUILD PASSING … isEven and isOdd returned: call stack unwound … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
+| Start and ending screens | ✅ | Terminal-style screens, all in `GameManager`. **Start:** the game loads frozen behind a terminal that types out `Compiling...` and `Build succeeded with 175 warnings (bugs) and 2 errors (bosses)`; Space skips the typing. The log then collapses to one line, and a language select menu appears (W/S or 1–3 to choose, Space to run). It describes the highlighted language: its weapon, passive and ability (for Java: `coffee cup: splash hits 3 bugs`, `JIT: hold fire to throw faster`, `GC: auto-frees bits near you`), plus the breakpoint parry every language shares. **Between waves:** a 2 s terminal break (`$ git pull origin feature/more-bugs …`). **Win** (after the final boss): `BUILD PASSING … ping and pong returned: call stack unwound … Process exited with code 0`, with the hearts left. **Game over:** a stack trace naming the cause of death (`OutOfHeartsException` or `BugsInProductionException`), then `Process exited with code 1`. R restarts from either end screen. |
 | Animations when collisions occur | ✅ | Pixel-art flipbook effects (`OneShotAnimation`), tinted to the color of whatever was hit. **Bug shot:** the bug flattens, bursts into a splat, then scatters into pixels (`BugSquash`). **Bit shot, or bit hits the ship:** a small pixel burst (`BitPop`). **Ship hit:** a 0.2 s camera shake in whole game pixels, so the image stays on the pixel grid (`CameraShake`), plus the invulnerability blink. **Bug rebuilt:** a pop in the bug's color when its bit returns. |
 | Additional levels | ✅ | Three waves, each different from the last (`WaveManager`, configured in the Inspector). **Wave 1:** the classic 5×11 formation sweeping the full width. **Wave 2:** two 4×6 formations, back-left and back-right, each bouncing between its screen edge and the midpoint, so they drop about twice as often. **Wave 3:** a 4×9 middle formation in front, with 3×6 back-left and back-right formations behind it. The back formations won't drop onto the middle one until it's cleared, so the player chooses which wave to thin out. Every formation has its own throw manager and speed-up. Hearts carry over between stages; JIT heat and the GC timer reset. The full run is **Wave 1 → Wave 2 → binary search miniboss → Wave 3 → recursion final boss** (see below). |
 
@@ -140,11 +140,17 @@ After wave 3, the final boss `recurse(4)` appears. It's built around how recursi
 escalates through three phases as its 70 HP drop.
 
 **Always active**
-- **It calls itself.** Every 1.6 s, the root or one of its clones makes a recursive call,
+- **It calls itself.** The root or one of its clones keeps making recursive calls,
   spawning a child one level deeper: `recurse(3)` down to the base case `recurse(0)`, shown in a
   different color, which can't call further. Each frame shows its argument as a number on its
   body. A frame's first call lands directly below it, so a column of clones (2 HP each) shields
   the root; other calls branch outward. A full tree is 35 frames, checked so none overlap.
+- **It can't be held bare.** The smaller the tree, the faster it calls: every 0.3 s when empty,
+  slowing to 1.6 s at the 18-frame stack limit. Pruning it makes it regrow faster.
+- **A root is only vulnerable while it's waiting on its calls.** A root with no children is idle:
+  it dims to gray and shots don't hurt it, just as a function only stays on the stack while its
+  own calls are running. So spamming the tree away doesn't win; you have to let it recurse, then
+  cut a lane (or overflow it) and hit the root while it's busy.
 - **Unwinding.** Clones block player shots. Destroying any frame unwinds its whole subtree, one
   depth level at a time, and each unwound frame "returns" its N as a falling digit
   (return-value rain).
@@ -165,8 +171,10 @@ escalates through three phases as its 70 HP drop.
   3-unit safe lane between them.
 
 **Phase 3 (33% HP): mutual recursion.** The tree collapses and the root splits into
-`isEven(3)` and `isOdd(3)`, two half-size trees that share the remaining HP. Kill one and the
-other calls twice as fast; kill both to win. The beam fires **four columns** at once.
+`ping(3)` and `pong(3)`, two half-size trees that share the remaining HP (the label shows each:
+`ping 12 | pong 11`). Each is taken down like the original root, through its own shield column
+while it's waiting on its calls. Kill one and the other calls twice as fast; kill both to win.
+The beam fires **four columns** at once.
 
 Implementation: `RecursionBoss` (calling, unwinding, overflow, phases, attacks), `BossFrame` (one
 call frame, including the dive), `SplitShot` (split shots, return values, volleys, memoized

@@ -97,6 +97,7 @@ MonoBehaviour:
   cloneHp: 1
   shieldCloneHp: 2
   callInterval: 1.6
+  minCallInterval: 0.3
   stackLimit: 18
   overflowStunTime: 4
   overflowUnwindDepth: 2

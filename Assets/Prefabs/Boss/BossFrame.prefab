@@ -154,6 +154,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossFrame
   label: {fileID: 4358064907188200413}
+  idleTint: {r: 0.28235295, g: 0.30980393, b: 0.34509805, a: 1}
 --- !u!1 &7775848799907022724
 GameObject:
   m_ObjectHideFlags: 0

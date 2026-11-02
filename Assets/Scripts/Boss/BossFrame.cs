@@ -14,6 +14,8 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
 {
     [Tooltip("Shows N on the frame's body.")]
     [SerializeField] private SpriteRenderer label;
+    [Tooltip("A root with no calls to wait on is dimmed toward this color and can't be damaged.")]
+    [SerializeField] private Color idleTint = new Color32(0x48, 0x4f, 0x58, 0xff);
 
     public RecursionBoss Boss { get; private set; }
     public BossFrame Parent { get; private set; }
@@ -27,6 +29,12 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
     public int Hp { get; private set; }
     public int MaxHp { get; private set; }
     public bool IsRoot => Parent == null;
+
+    /// <summary>
+    /// A root that isn't waiting on any calls (no children) is idle: it can't be damaged,
+    /// because a call only stays on the stack while its own calls are running.
+    /// </summary>
+    public bool IsIdle => IsRoot && Children.Count == 0;
     public bool IsDead { get; private set; }
     public Color Color { get; private set; }
 
@@ -77,6 +85,8 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
         label.color = labelColor = digitColor;
         name = $"recurse({n})";
         parent?.Children.Add(this);
+        parent?.RefreshTint();
+        RefreshTint();
     }
 
     public void OnShot() => TakeDamage(1);
@@ -85,7 +95,7 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
 
     public void TakeDamage(int amount)
     {
-        if (IsDead) return;
+        if (IsDead || IsIdle) return; // an idle root shrugs hits off (shots still stop on it)
         Hp -= amount;
         StartCoroutine(FlashWhite());
         Boss.OnFrameDamaged(this);
@@ -98,6 +108,7 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
         IsDead = true;
         hitbox.enabled = false;
         Parent?.Children.Remove(this);
+        Parent?.RefreshTint();
         Parryables.Unregister(this);
     }
 
@@ -168,6 +179,15 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
         if (other.TryGetComponent(out PlayerHealth health)) health.TakeHit();
     }
 
+    /// <summary>The color the body returns to after flashes: dimmed while the root is idle.</summary>
+    private Color RestingColor => IsIdle ? Color.Lerp(Color, idleTint, 0.7f) : Color;
+
+    /// <summary>Re-applies the resting color (called when this root gains or loses calls).</summary>
+    public void RefreshTint()
+    {
+        if (body != null && !IsDead) body.color = RestingColor;
+    }
+
     /// <summary>Blink white (used on hits and on stack overflow).</summary>
     public void Flash(float duration) => StartCoroutine(FlashFor(duration));
 
@@ -176,7 +196,7 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
         body.color = Color.white;
         label.color = Color;
         yield return new WaitForSeconds(0.06f);
-        body.color = Color;
+        body.color = RestingColor;
         label.color = labelColor;
     }
 
@@ -185,9 +205,9 @@ public class BossFrame : MonoBehaviour, IEnemyBody, IParryable
         var wait = new WaitForSeconds(0.1f);
         for (float t = 0f; t < duration; t += 0.1f)
         {
-            body.color = body.color == Color ? Color.white : Color;
+            body.color = body.color == Color.white ? RestingColor : Color.white;
             yield return wait;
         }
-        body.color = Color;
+        body.color = RestingColor;
     }
 }

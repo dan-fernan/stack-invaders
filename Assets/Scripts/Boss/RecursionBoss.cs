@@ -17,9 +17,11 @@ using UnityEngine;
 ///   1. (100-66%) split shots, return-value rain, stack-trace beam, Fibonacci volleys.
 ///   2. (66-33%)  + memoization (fires at your cached positions), stack growth (the tree
 ///                pushes down a row), tail-call dives, and the beam fires in 3 columns.
-///   3. (< 33%)   mutual recursion: the tree collapses and the root splits into isEven and
-///                isOdd, sharing the remaining HP. Kill one and the other calls twice as
+///   3. (< 33%)   mutual recursion: the tree collapses and the root splits into ping and
+///                pong, sharing the remaining HP. Kill one and the other calls twice as
 ///                fast; kill both to win. The beam fires in 4 columns.
+/// Anti-spam: the smaller the tree, the faster it calls (it regrows when pruned), and a
+/// root with no calls to wait on is idle (dimmed) and can't be damaged.
 /// </summary>
 public class RecursionBoss : MonoBehaviour, IBoss
 {
@@ -44,8 +46,10 @@ public class RecursionBoss : MonoBehaviour, IBoss
     [SerializeField] private int cloneHp = 1;
     [Tooltip("HP of clones in the center column that shields the root.")]
     [SerializeField] private int shieldCloneHp = 2;
-    [Tooltip("Seconds between recursive calls (new clones).")]
+    [Tooltip("Seconds between recursive calls when the tree is full (stack limit).")]
     [SerializeField] private float callInterval = 1.6f;
+    [Tooltip("Seconds between recursive calls when the tree is empty: pruning makes it regrow faster.")]
+    [SerializeField] private float minCallInterval = 0.3f;
     [Tooltip("More frames than this throws StackOverflowError.")]
     [SerializeField] private int stackLimit = 18;
     [SerializeField] private float overflowStunTime = 4f;
@@ -118,7 +122,7 @@ public class RecursionBoss : MonoBehaviour, IBoss
     [SerializeField] private float[] mutualSideStep = { 0f, 1f, 1.75f, 0.875f };
     [SerializeField] private float mutualRootX = 4.75f;
     [SerializeField] private float splitTelegraphTime = 1f;
-    [Tooltip("Call-interval multiplier for the survivor once one of isEven/isOdd dies.")]
+    [Tooltip("Call-interval multiplier for the survivor once one of ping/pong dies.")]
     [SerializeField] private float survivorCallMultiplier = 0.5f;
 
     [Header("Movement")]
@@ -151,8 +155,9 @@ public class RecursionBoss : MonoBehaviour, IBoss
         {
             if (IsStunned) return "StackOverflowError!";
             if (Phase < 3) return $"recurse({maxDepth})";
-            if (roots.Count == 2) return $"isEven({mutualDepth}) / isOdd({mutualDepth})";
-            return roots.Count == 1 ? $"{roots[0].name} x2 speed" : "";
+            if (splitting) return "mutual recursion...";
+            if (roots.Count == 2) return $"ping {roots[0].Hp} | pong {roots[1].Hp}";
+            return roots.Count == 1 ? $"{RootName(roots[0])} {roots[0].Hp}  (calls x2)" : "";
         }
     }
 
@@ -162,6 +167,9 @@ public class RecursionBoss : MonoBehaviour, IBoss
     public bool IsStunned { get; private set; }
 
     private const int SlotBelow = 0, SlotSide = 1, SlotLeft = 2, SlotRight = 3;
+    private static readonly string[] MutualNames = { "ping", "pong" };
+
+    private static string RootName(BossFrame root) => root.name.Split('(')[0];
     private static readonly int[] Fibonacci = { 1, 1, 2, 3, 5, 8 };
 
     private readonly List<BossFrame> frames = new List<BossFrame>();
@@ -211,7 +219,7 @@ public class RecursionBoss : MonoBehaviour, IBoss
         Drift(dt);
 
         callTimer += dt;
-        float interval = callInterval * callMultiplier;
+        float interval = CurrentCallInterval();
         if (callTimer >= interval)
         {
             callTimer -= interval;
@@ -240,6 +248,13 @@ public class RecursionBoss : MonoBehaviour, IBoss
                 diveTimer = Mathf.Lerp(diveIntervalRange.x, diveIntervalRange.y, t);
             }
         }
+    }
+
+    /// <summary>Adaptive call rate: an empty tree calls every minCallInterval, a full one every callInterval.</summary>
+    private float CurrentCallInterval()
+    {
+        float fullness = Mathf.Clamp01((frames.Count - roots.Count) / (float)Mathf.Max(1, stackLimit - roots.Count));
+        return Mathf.Lerp(minCallInterval, callInterval, fullness) * callMultiplier;
     }
 
     private static bool Tick(ref float timer, float dt)
@@ -345,6 +360,7 @@ public class RecursionBoss : MonoBehaviour, IBoss
     {
         if (!frame.IsRoot) return;
         HpChanged?.Invoke(Hp, MaxHp);
+        if (Phase == 3) LabelChanged?.Invoke(Label); // per-root HP is in the label
         float fraction = (float)Hp / MaxHp;
         if (Phase == 1 && fraction <= phase2At) Phase = 2;
         if (Phase == 2 && fraction <= phase3At && Hp > 0 && !splitting) StartCoroutine(MutualSplit());
@@ -431,7 +447,7 @@ public class RecursionBoss : MonoBehaviour, IBoss
     }
 
     /// <summary>
-    /// Phase 3: the call tree collapses and the root splits into isEven and isOdd, two
+    /// Phase 3: the call tree collapses and the root splits into ping and pong, two
     /// half-size trees that share the remaining HP.
     /// </summary>
     private IEnumerator MutualSplit()
@@ -458,19 +474,18 @@ public class RecursionBoss : MonoBehaviour, IBoss
         activeSideStep = mutualSideStep;
         ResetStackGrowth();
         int half = Mathf.CeilToInt(remaining / 2f);
-        string[] names = { "isEven", "isOdd" };
         float[] xs = { -mutualRootX, mutualRootX };
         for (int i = 0; i < 2; i++)
         {
             BossFrame r = SpawnFrame(null, 0, new Vector3(xs[i], 0f, 0f), mutualDepth,
                                      i == 0 ? half : remaining - half, mutualColor);
-            r.name = $"{names[i]}({mutualDepth})";
+            r.name = $"{MutualNames[i]}({mutualDepth})";
             roots.Add(r);
         }
-        HpChanged?.Invoke(Hp, MaxHp);
-        LabelChanged?.Invoke(Label);
         callTimer = 0f;
         splitting = false;
+        HpChanged?.Invoke(Hp, MaxHp);
+        LabelChanged?.Invoke(Label);
     }
 
     private void GrowStack()

@@ -360,7 +360,7 @@ public class GameManager : MonoBehaviour
         ShowScreen(
             "BUILD PASSING\n\n" +
             $"All tests passed: {waveManager.WaveCount} waves and {BossCount} bosses fixed\n" +
-            "isEven and isOdd returned: call stack unwound\n" +
+            "ping and pong returned: call stack unwound\n" +
             $"Unhandled exceptions remaining: {playerHealth.Hearts}/{playerHealth.MaxHearts}\n\n" +
             "Process exited with code 0\n\n" +
             "> press R to run again",
