@@ -90,7 +90,10 @@ Between waves 2 and 3. A bug hides in one cell of a 16-cell sorted array, and ev
 
 - **Each shot is a comparison.** Hit a wrong cell and it shows `>` or `<`, pointing toward the
   bug. Every cell on the wrong side is **eliminated**: grayed out, and shots pass through it,
-  just as a binary search discards half its range. Hit the bug's cell and it's **found**.
+  just as a binary search discards half its range. Hit the bug's cell and it's **found**. For about
+  1.5 s everything else dims and stops firing, the found cell pops to 2× size and blinks red with
+  the bug inside, and `found arr[12]!  -27` pops up. Then the bug ducks back in and the array
+  re-sorts.
 - **Efficient searches hurt more.** The boss has 160 HP. A find deals 15 damage plus 6 for
   every comparison left in the budget (6 per search; an optimal search of 16 cells needs at most
   5). A 4-comparison find deals 27, a 6-comparison find only 15, and the HUD reports it

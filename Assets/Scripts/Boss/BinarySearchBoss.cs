@@ -46,8 +46,13 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     [Header("Search")]
     [Tooltip("Comparisons allowed per search (an optimal search of 16 cells needs at most 5).")]
     [SerializeField] private int comparisonBudget = 6;
-    [Tooltip("Seconds the found bug / last hint stays visible before the re-sort scramble.")]
+    [Tooltip("Seconds the last hint stays visible before a re-sort after running out of comparisons.")]
     [SerializeField] private float revealTime = 0.5f;
+    [Tooltip("Seconds the found-bug moment lasts (cell pops and blinks, damage pop-up) before the re-sort.")]
+    [SerializeField] private float findRevealTime = 1.5f;
+    [Tooltip("Whole-number scale the found cell pops to.")]
+    [SerializeField] private int foundPopScale = 2;
+    [SerializeField] private FloatingText popupPrefab;
     [SerializeField] private float resortTime = 1.2f;
     [SerializeField] private OneShotAnimation popEffect;
 
@@ -112,6 +117,7 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     private SpriteRenderer leftCannon, rightCannon;
 
     private Camera cam;
+    private RectTransform popupCanvas;
     private PlayerController playerMovement;
     private SpriteRenderer leftWall, rightWall;
     private float wallMin, wallMax;          // current (animated) room edges
@@ -120,6 +126,8 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     private void Awake()
     {
         cam = Camera.main;
+        Canvas canvas = FindAnyObjectByType<Canvas>();
+        if (canvas != null) popupCanvas = (RectTransform)canvas.transform;
         Hp = maxHp;
         cells = new SearchCell[cellCount];
         probed = new bool[cellCount];
@@ -224,13 +232,48 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     {
         int damage = baseFindDamage + damagePerSavedComparison * Mathf.Max(0, comparisonBudget - comparisonsUsed);
         Hp = Mathf.Max(0, Hp - damage);
+        resorting = true; // stop firing and probing for the whole found sequence
+        StunnedChanged?.Invoke(true);
+        HpChanged?.Invoke(Hp, maxHp);
+        LabelChanged?.Invoke($"found arr[{cell.Index}] in {comparisonsUsed} cmp: -{damage}");
+        StartCoroutine(FoundSequence(cell, damage));
+    }
+
+    /// <summary>
+    /// The found moment: everything else dims, the bug's cell pops to 2x and blinks,
+    /// a pop-up shows the damage. Then the re-sort (or the defeat).
+    /// </summary>
+    private IEnumerator FoundSequence(SearchCell cell, int damage)
+    {
+        foreach (SearchCell c in cells)
+            if (c != cell) c.Show(unknownGlyph, eliminatedColor, false);
         cell.Show(bugGlyph, foundColor, false);
         if (popEffect != null) popEffect.Spawn(cell.transform.position, foundColor);
-        HpChanged?.Invoke(Hp, maxHp);
-        LabelChanged?.Invoke($"found in {comparisonsUsed} cmp: -{damage}");
+        if (popupPrefab != null && popupCanvas != null)
+            popupPrefab.Spawn(popupCanvas, cam, cell.transform.position + Vector3.down * 1.25f,
+                              $"found arr[{cell.Index}]!  -{damage}", foundColor, findRevealTime);
+
+        // Draw the popped cell over its (overlapped) neighbors.
+        SpriteRenderer[] parts = cell.GetComponentsInChildren<SpriteRenderer>();
+        foreach (SpriteRenderer part in parts) part.sortingOrder += 10;
+
+        Transform t = cell.transform;
+        t.localScale = Vector3.one * foundPopScale;
+        var wait = new WaitForSeconds(0.12f);
+        bool white = false;
+        for (float time = 0f; time < findRevealTime; time += 0.12f)
+        {
+            white = !white;
+            cell.Show(bugGlyph, white ? Color.white : foundColor, false);
+            if (time > findRevealTime * 0.7f) t.localScale = Vector3.one; // the bug ducks back in
+            yield return wait;
+        }
+        t.localScale = Vector3.one;
+        foreach (SpriteRenderer part in parts) part.sortingOrder -= 10;
+        cell.Show(bugGlyph, foundColor, false);
 
         if (Hp <= 0) StartCoroutine(Defeat());
-        else StartCoroutine(Resort(punish: false));
+        else StartCoroutine(Resort(punish: false, holdResult: false));
     }
 
     /// <summary>Grays out cells outside the range (or already probed) and moves the walls in.</summary>
@@ -260,7 +303,8 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     }
 
     /// <summary>The array re-sorts: the bug moves, hints clear, walls open.</summary>
-    private IEnumerator Resort(bool punish)
+    /// <param name="holdResult">Keep the last hint on screen for a moment first (a find has its own sequence).</param>
+    private IEnumerator Resort(bool punish, bool holdResult = true)
     {
         if (punish)
             foreach (SearchCell c in cells)
@@ -269,8 +313,7 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
         resorting = true;
         StunnedChanged?.Invoke(true);
 
-        // Hold the result (the found bug, or the last hint) on screen for a moment.
-        yield return new WaitForSeconds(revealTime);
+        if (holdResult) yield return new WaitForSeconds(revealTime);
         LabelChanged?.Invoke(Label);
         OpenWalls();
 
@@ -292,8 +335,8 @@ public class BinarySearchBoss : MonoBehaviour, IBoss
     {
         defeated = true;
         OpenWalls();
-        LabelChanged?.Invoke("return index;");
-        yield return new WaitForSeconds(revealTime);
+        LabelChanged?.Invoke($"return {target};");
+        yield return new WaitForSeconds(0.3f);
         // Pop the cells from the bug outward.
         for (int d = 0; d < cellCount; d++)
         {

@@ -60,6 +60,9 @@ MonoBehaviour:
   damagePerSavedComparison: 6
   comparisonBudget: 6
   revealTime: 0.5
+  findRevealTime: 1.5
+  foundPopScale: 2
+  popupPrefab: {fileID: 3319601294227622659, guid: 75970f8311ff6446bb7de064baa91b0c, type: 3}
   resortTime: 1.2
   popEffect: {fileID: 6178787030115165103, guid: 926cb54ec6543413f99435354ca3a7b1, type: 3}
   cannonPrefab: {fileID: 1369571445995911269, guid: 7bdc241aae2904d60850cc2af33f8032, type: 3}

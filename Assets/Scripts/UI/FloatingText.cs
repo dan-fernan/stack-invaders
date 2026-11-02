@@ -25,9 +25,12 @@ public class FloatingText : MonoBehaviour
     }
 
     /// <summary>Spawns a copy of this prefab on the canvas above a world position.</summary>
-    public void Spawn(RectTransform canvas, Camera cam, Vector3 worldPosition, string text, Color tint)
+    /// <param name="lifetimeOverride">Seconds to stay up; uses the prefab's lifetime if not positive.</param>
+    public void Spawn(RectTransform canvas, Camera cam, Vector3 worldPosition, string text, Color tint,
+                      float lifetimeOverride = -1f)
     {
         FloatingText popup = Instantiate(this, canvas);
+        if (lifetimeOverride > 0f) popup.lifetime = lifetimeOverride;
         Vector2 screen = cam.WorldToScreenPoint(worldPosition);
         RectTransformUtility.ScreenPointToLocalPointInRectangle(canvas, screen, cam, out Vector2 local);
         popup.start = local;
