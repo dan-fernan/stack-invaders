@@ -154,8 +154,9 @@ public class GameManager : MonoBehaviour
     private void StartGame(LanguageOption chosen)
     {
         language = chosen;
+        // Languages whose item is drawn into the developer's frames (Java's mug) have no held sprite.
         heldItem.sprite = chosen.heldItem;
-        heldItem.enabled = true;
+        heldItem.enabled = chosen.heldItem != null;
         // HUD first, so it is subscribed before the weapon publishes its initial state.
         if (chosen.hud != null) chosen.hud.SetActive(true);
 

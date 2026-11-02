@@ -10,8 +10,10 @@ using UnityEngine.InputSystem;
 public class JavaWeapon : MonoBehaviour
 {
     [SerializeField] private CoffeeCup cupPrefab;
-    [Tooltip("Where cups are thrown from (the held mug).")]
+    [Tooltip("Where cups are thrown from (the developer's throwing hand).")]
     [SerializeField] private Transform throwPoint;
+    [Tooltip("Plays the developer's throw animation on each throw.")]
+    [SerializeField] private PlayerAnimator animator;
 
     [Header("JIT warmup")]
     [Tooltip("Seconds between throws when cold.")]
@@ -67,6 +69,7 @@ public class JavaWeapon : MonoBehaviour
     private void Throw()
     {
         Instantiate(cupPrefab, throwPoint.position, Quaternion.identity);
+        if (animator != null) animator.PlayThrow();
         nextThrowTime = Time.time + Mathf.Lerp(coldCooldown, hotCooldown, Heat);
         lastThrowTime = Time.time;
         Heat = Mathf.Min(1f, Heat + 1f / throwsToWarm);

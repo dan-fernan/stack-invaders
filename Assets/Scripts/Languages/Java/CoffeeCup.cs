@@ -14,16 +14,22 @@ public class CoffeeCup : MonoBehaviour
     [SerializeField] private float splashRadius = 0.7f;
     [SerializeField] private OneShotAnimation splashEffect;
     [SerializeField] private Color splashColor = new Color32(0xc0, 0x8a, 0x4f, 0xff);
+    [Tooltip("Frames cycled while the cup tumbles through the air.")]
+    [SerializeField] private Sprite[] tumbleFrames;
+    [SerializeField] private float tumbleFps = 12f;
 
     // Reused between smashes to avoid allocating a new results list each time.
     private static readonly List<Collider2D> Hits = new List<Collider2D>();
 
     private Camera cam;
+    private SpriteRenderer spriteRenderer;
+    private float age;
     private bool smashed;
 
     private void Awake()
     {
         cam = Camera.main;
+        spriteRenderer = GetComponent<SpriteRenderer>();
         var rb = GetComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Kinematic;
         rb.linearVelocity = Vector2.up * speed;
@@ -31,6 +37,10 @@ public class CoffeeCup : MonoBehaviour
 
     private void Update()
     {
+        age += Time.deltaTime;
+        if (tumbleFrames != null && tumbleFrames.Length > 0)
+            spriteRenderer.sprite = tumbleFrames[(int)(age * tumbleFps) % tumbleFrames.Length];
+
         float top = cam.transform.position.y + cam.orthographicSize;
         if (transform.position.y > top + 1f)
             Destroy(gameObject);

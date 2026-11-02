@@ -314,7 +314,7 @@ Transform:
   m_GameObject: {fileID: 519375511}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.3125, y: 0.375, z: 0}
+  m_LocalPosition: {x: 0.3125, y: 0.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -930,7 +930,7 @@ MonoBehaviour:
   - displayName: Java
     tagline: slow start, strong finish
     locked: 0
-    heldItem: {fileID: 21300000, guid: 83b4d617f170347148283cd356992669, type: 3}
+    heldItem: {fileID: 0}
     behaviours:
     - {fileID: 982252454}
     - {fileID: 982252453}
@@ -1053,6 +1053,7 @@ GameObject:
   - component: {fileID: 982252454}
   - component: {fileID: 982252453}
   - component: {fileID: 982252455}
+  - component: {fileID: 982252456}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -1123,7 +1124,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: c557e03907d34488f81d1e7de812192a, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 14cd9639040ec4adfae3ab5ad9f9ca1f, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1200,7 +1201,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: -0.0625, y: -0.0625}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
@@ -1210,7 +1211,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.75, y: 1}
+  m_Size: {x: 0.625, y: 1.125}
   m_EdgeRadius: 0
 --- !u!50 &982252452
 Rigidbody2D:
@@ -1267,6 +1268,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JavaWeapon
   cupPrefab: {fileID: 7418680891263510914, guid: 4993f215cd3954e96a0d96da274cfeb3, type: 3}
   throwPoint: {fileID: 519375512}
+  animator: {fileID: 982252456}
   coldCooldown: 0.8
   hotCooldown: 0.25
   throwsToWarm: 6
@@ -1294,6 +1296,34 @@ MonoBehaviour:
   cooldownColor: {r: 0.28235295, g: 0.30980393, b: 0.34509805, a: 1}
   popupPrefab: {fileID: 3319601294227622659, guid: 75970f8311ff6446bb7de064baa91b0c, type: 3}
   popupCanvas: {fileID: 948229221}
+--- !u!114 &982252456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 982252445}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 52163255676904135b6157e34740fed4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAnimator
+  idleFrames:
+  - {fileID: 21300000, guid: 14cd9639040ec4adfae3ab5ad9f9ca1f, type: 3}
+  - {fileID: 21300000, guid: 9d279da7609aa45eaa11d8d072fc380d, type: 3}
+  idleFps: 2
+  runFrames:
+  - {fileID: 21300000, guid: 27044c1217cfc4475a6f4681ac1bb4a0, type: 3}
+  - {fileID: 21300000, guid: 090b285ae4ed64ece8469c55101d7f56, type: 3}
+  - {fileID: 21300000, guid: 2465233790bc14f2d94cf8435eb545b0, type: 3}
+  - {fileID: 21300000, guid: 9f2856fb0b4a341ae936739e7fc0d211, type: 3}
+  runFps: 10
+  throwFrames:
+  - {fileID: 21300000, guid: d5af2cfd5c93f437a98527629ab47e91, type: 3}
+  - {fileID: 21300000, guid: 06173cb913892489ab0db7fe8608693c, type: 3}
+  - {fileID: 21300000, guid: f0e7e7e590cbd4ff494b2527c8afba86, type: 3}
+  throwFps: 16
+  runThreshold: 0.5
 --- !u!1 &1074964047
 GameObject:
   m_ObjectHideFlags: 0

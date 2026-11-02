@@ -14,7 +14,7 @@ public class LanguageOption
     [Tooltip("Locked languages show as 'coming soon' and can't be picked.")]
     public bool locked;
 
-    [Tooltip("Sprite for the item the developer holds (coffee mug, snake, fists).")]
+    [Tooltip("Separate sprite for the item the developer holds. Leave empty if the item is drawn into the developer's frames (Java's mug).")]
     public Sprite heldItem;
     [Tooltip("Weapon and ability scripts enabled only while playing this language.")]
     public MonoBehaviour[] behaviours;
