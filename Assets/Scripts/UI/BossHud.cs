@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -5,7 +6,8 @@ using UnityEngine.UI;
 /// Boss health bar across the top of the screen: the boss's label (e.g. "recurse(4)") over
 /// a pixel bar whose fill drains on hits (flashing white), with a lighter "recent damage"
 /// trail that catches up after a moment. Turns gray while the boss is stunned.
-/// Works with any IBoss.
+/// Works with any IBoss; an IMultiBarBoss with several bars (the recursion boss's ping and
+/// pong) gets one bar per part, side by side, left to right.
 /// Only animates (Update enabled) while the fill flash or trail is still moving.
 /// </summary>
 public class BossHud : MonoBehaviour
@@ -23,8 +25,12 @@ public class BossHud : MonoBehaviour
     [SerializeField] private float trailDelay = 0.4f;
     [Tooltip("Fraction of the bar per second the trail drains.")]
     [SerializeField] private float trailSpeed = 0.6f;
+    [Tooltip("Gap between side-by-side bars, in UI pixels.")]
+    [SerializeField] private float multiBarGap = 4f;
 
     private IBoss boss;
+    private IMultiBarBoss multiBoss;
+    private readonly List<Image> partBars = new List<Image>();
     private float fraction = 1f;
     private float trailFraction = 1f;
     private float trailWait;
@@ -38,6 +44,9 @@ public class BossHud : MonoBehaviour
         boss.HpChanged += OnHp;
         boss.LabelChanged += OnLabel;
         boss.StunnedChanged += OnStunned;
+        multiBoss = target as IMultiBarBoss;
+        if (multiBoss != null) multiBoss.BarsChanged += RefreshPartBars;
+        RefreshPartBars();
         fraction = trailFraction = (float)boss.Hp / boss.MaxHp;
         overflowing = false;
         label.text = boss.Label;
@@ -55,6 +64,8 @@ public class BossHud : MonoBehaviour
         boss.HpChanged -= OnHp;
         boss.LabelChanged -= OnLabel;
         boss.StunnedChanged -= OnStunned;
+        if (multiBoss != null) multiBoss.BarsChanged -= RefreshPartBars;
+        multiBoss = null;
         boss = null;
     }
 
@@ -74,6 +85,7 @@ public class BossHud : MonoBehaviour
     {
         overflowing = active;
         if (!enabled) fillImage.color = active ? stunnedColor : fillColor;
+        foreach (Image bar in partBars) bar.color = active ? stunnedColor : fillColor;
     }
 
     private void Update()
@@ -87,6 +99,44 @@ public class BossHud : MonoBehaviour
         SetWidth(trail, trailFraction);
 
         if (!flashing && Mathf.Approximately(trailFraction, fraction)) enabled = false;
+    }
+
+    /// <summary>
+    /// One bar per boss part. With a single part the normal bar (fill + damage trail) is
+    /// used; with several, it's hidden and replaced by equal-width bars with gaps between.
+    /// </summary>
+    private void RefreshPartBars()
+    {
+        int count = multiBoss != null ? multiBoss.BarCount : 1;
+        bool split = count > 1;
+        fill.gameObject.SetActive(!split);
+        trail.gameObject.SetActive(!split);
+
+        while (partBars.Count < count && split) partBars.Add(CreatePartBar(partBars.Count));
+        float width = (barWidth - multiBarGap * (count - 1)) / count;
+        for (int i = 0; i < partBars.Count; i++)
+        {
+            bool used = split && i < count;
+            partBars[i].gameObject.SetActive(used);
+            if (!used) continue;
+            multiBoss.GetBar(i, out int hp, out int max);
+            var rect = partBars[i].rectTransform;
+            rect.anchoredPosition = new Vector2(fill.anchoredPosition.x + i * (width + multiBarGap), 0f);
+            rect.sizeDelta = new Vector2(Mathf.Round(Mathf.Clamp01((float)hp / max) * width), fill.sizeDelta.y);
+            partBars[i].color = overflowing ? stunnedColor : fillColor;
+        }
+    }
+
+    private Image CreatePartBar(int index)
+    {
+        var go = new GameObject($"PartBar{index}", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(fill.parent, false);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = rect.anchorMax = fill.anchorMin;
+        rect.pivot = fill.pivot;
+        var image = go.GetComponent<Image>();
+        image.raycastTarget = false;
+        return image;
     }
 
     private void SetWidth(RectTransform bar, float f)

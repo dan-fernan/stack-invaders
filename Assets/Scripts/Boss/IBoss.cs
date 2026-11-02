@@ -23,6 +23,18 @@ public interface IBoss
 }
 
 /// <summary>
+/// A boss that can show several health bars side by side (the recursion boss after it
+/// splits into ping and pong). Bar 0 is leftmost.
+/// </summary>
+public interface IMultiBarBoss : IBoss
+{
+    /// <summary>The number of bars or any bar's value changed.</summary>
+    event Action BarsChanged;
+    int BarCount { get; }
+    void GetBar(int index, out int hp, out int max);
+}
+
+/// <summary>
 /// A boss body part a parried projectile can hit (recursion frames, search cells).
 /// </summary>
 public interface IEnemyBody : IShootable

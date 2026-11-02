@@ -23,7 +23,7 @@ using UnityEngine;
 /// Anti-spam: the smaller the tree, the faster it calls (it regrows when pruned), and a
 /// root with no calls to wait on is idle (dimmed) and can't be damaged.
 /// </summary>
-public class RecursionBoss : MonoBehaviour, IBoss
+public class RecursionBoss : MonoBehaviour, IMultiBarBoss
 {
     [Header("Frames")]
     [SerializeField] private BossFrame framePrefab;
@@ -135,6 +135,18 @@ public class RecursionBoss : MonoBehaviour, IBoss
     /// <summary>Raised when StackOverflowError starts (true) and ends (false).</summary>
     public event Action<bool> StunnedChanged;
     public event Action Defeated;
+    /// <summary>Phase 3: each of ping and pong gets its own health bar.</summary>
+    public event Action BarsChanged;
+
+    public int BarCount => mutualRoots.Count > 0 ? mutualRoots.Count : 1;
+
+    public void GetBar(int index, out int hp, out int max)
+    {
+        if (mutualRoots.Count == 0) { hp = Hp; max = MaxHp; return; }
+        BossFrame r = mutualRoots[index];
+        hp = r.IsDead ? 0 : Mathf.Max(0, r.Hp);
+        max = r.MaxHp;
+    }
 
     /// <summary>Total HP of the living root(s).</summary>
     public int Hp
@@ -174,6 +186,8 @@ public class RecursionBoss : MonoBehaviour, IBoss
 
     private readonly List<BossFrame> frames = new List<BossFrame>();
     private readonly List<BossFrame> roots = new List<BossFrame>();
+    // ping and pong in bar order (kept after death so the dead one's bar shows empty).
+    private readonly List<BossFrame> mutualRoots = new List<BossFrame>();
     private readonly List<(BossFrame parent, int slot)> openSlots = new List<(BossFrame, int)>();
     private readonly Queue<float> memoCache = new Queue<float>();
     private float[] activeSideStep;
@@ -360,7 +374,11 @@ public class RecursionBoss : MonoBehaviour, IBoss
     {
         if (!frame.IsRoot) return;
         HpChanged?.Invoke(Hp, MaxHp);
-        if (Phase == 3) LabelChanged?.Invoke(Label); // per-root HP is in the label
+        if (Phase == 3)
+        {
+            LabelChanged?.Invoke(Label); // per-root HP is in the label
+            BarsChanged?.Invoke();
+        }
         float fraction = (float)Hp / MaxHp;
         if (Phase == 1 && fraction <= phase2At) Phase = 2;
         if (Phase == 2 && fraction <= phase3At && Hp > 0 && !splitting) StartCoroutine(MutualSplit());
@@ -403,6 +421,7 @@ public class RecursionBoss : MonoBehaviour, IBoss
                 callMultiplier = survivorCallMultiplier;
                 LabelChanged?.Invoke(Label);
             }
+            BarsChanged?.Invoke();
         }
         StartCoroutine(PopLevels(levels, lastRoot, returnValues && !frame.IsRoot));
     }
@@ -481,11 +500,13 @@ public class RecursionBoss : MonoBehaviour, IBoss
                                      i == 0 ? half : remaining - half, mutualColor);
             r.name = $"{MutualNames[i]}({mutualDepth})";
             roots.Add(r);
+            mutualRoots.Add(r);
         }
         callTimer = 0f;
         splitting = false;
         HpChanged?.Invoke(Hp, MaxHp);
         LabelChanged?.Invoke(Label);
+        BarsChanged?.Invoke();
     }
 
     private void GrowStack()
@@ -578,6 +599,7 @@ public class RecursionBoss : MonoBehaviour, IBoss
         {
             SplitShot shot = Instantiate(shotPrefab, new Vector3(x, top, 0f), Quaternion.identity);
             shot.Launch(null, 0, Vector2.down, baseCaseColor, speedScale: memoSpeedScale, label: "cache hit");
+            shot.MakeUnshootable(); // a cache hit can't be shot away: dodge it or parry it
         }
     }
 

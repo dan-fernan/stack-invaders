@@ -5,4 +5,10 @@
 public interface IShootable
 {
     void OnShot();
+
+    /// <summary>
+    /// False for things player shots pass straight through (e.g. the recursion boss's
+    /// memoized "cache hit" shots, which can only be dodged or parried).
+    /// </summary>
+    bool CanBeShot => true;
 }

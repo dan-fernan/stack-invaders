@@ -62,7 +62,7 @@ public class CoffeeCup : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (smashed || !other.TryGetComponent(out IShootable _)) return;
+        if (smashed || !other.TryGetComponent(out IShootable target) || !target.CanBeShot) return;
         Smash();
     }
 
@@ -76,7 +76,7 @@ public class CoffeeCup : MonoBehaviour
         var hitTargets = new HashSet<IShootable>();
         foreach (Collider2D hit in Hits)
         {
-            if (hit.TryGetComponent(out IShootable target) && hitTargets.Add(target))
+            if (hit.TryGetComponent(out IShootable target) && target.CanBeShot && hitTargets.Add(target))
                 target.OnShot();
         }
 

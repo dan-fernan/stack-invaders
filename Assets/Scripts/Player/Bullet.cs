@@ -31,7 +31,7 @@ public class Bullet : MonoBehaviour
     {
         // A bullet can overlap two targets in the same physics step; only count the first.
         if (spent) return;
-        if (!other.TryGetComponent(out IShootable target)) return;
+        if (!other.TryGetComponent(out IShootable target) || !target.CanBeShot) return;
 
         spent = true;
         target.OnShot();

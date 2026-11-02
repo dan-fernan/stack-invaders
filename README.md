@@ -163,7 +163,8 @@ escalates through three phases as its 70 HP drop.
 
 **Phase 2 (66% HP):**
 - **Memoization:** the boss caches where you've been, marks those spots on the floor, then drops
-  fast shots on them, so revisiting a spot gets punished.
+  fast shots on them, so revisiting a spot gets punished. Cache hits can't be shot down (your
+  shots pass straight through them); dodge them or parry them.
 - **Stack growth:** the tree pushes down one row every 9 s (up to 3 rows); an overflow resets it.
 - **Tail-call dives:** a clone marks a dotted path to you and dives along it. It's shootable and
   parryable.
@@ -171,8 +172,9 @@ escalates through three phases as its 70 HP drop.
   3-unit safe lane between them.
 
 **Phase 3 (33% HP): mutual recursion.** The tree collapses and the root splits into
-`ping(3)` and `pong(3)`, two half-size trees that share the remaining HP (the label shows each:
-`ping 12 | pong 11`). Each is taken down like the original root, through its own shield column
+`ping(3)` and `pong(3)`, two half-size trees that share the remaining HP. The health bar splits
+into two side-by-side bars, `ping` on the left and `pong` on the right, matching their positions,
+and the label shows each (`ping 12 | pong 11`). Each is taken down like the original root, through its own shield column
 while it's waiting on its calls. Kill one and the other calls twice as fast; kill both to win.
 The beam fires **four columns** at once.
 

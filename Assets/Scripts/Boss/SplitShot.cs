@@ -27,6 +27,13 @@ public class SplitShot : MonoBehaviour, IShootable, IParryable
     private bool parried;
     private bool done;
     private string parryLabel;
+    private bool shootable = true;
+
+    /// <summary>False for memoized "cache hit" shots: player shots pass through them.</summary>
+    public bool CanBeShot => shootable && !parried;
+
+    /// <summary>Makes this shot indestructible to player fire (it can still be dodged or parried).</summary>
+    public void MakeUnshootable() => shootable = false;
 
     public bool IsDangerous => !done && !parried;
     public Vector3 Position => transform.position;
