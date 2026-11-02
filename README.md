@@ -152,8 +152,8 @@ escalates through three phases as its 70 HP drop.
   (the health bar turns gray), then frames at depth 2 and below unwind without returning anything.
 - **Recursive split shot.** A frame fires a shot that splits in two every 0.45 s, up to 3 times.
 - **Fibonacci volley.** Every 4 s, a fan of 1, 1, 2, 3, 5, 8 shots, then the sequence repeats.
-- **Stack-trace beam.** A root marks its column, then fires a 1 s beam of scrolling stack-trace
-  lines.
+- **Stack-trace beam.** A root marks its column with a blinking outline, then fires a 1 s beam
+  of scrolling stack-trace lines. Later phases fire several columns at once (below).
 
 **Phase 2 (66% HP):**
 - **Memoization:** the boss caches where you've been, marks those spots on the floor, then drops
@@ -161,15 +161,16 @@ escalates through three phases as its 70 HP drop.
 - **Stack growth:** the tree pushes down one row every 9 s (up to 3 rows); an overflow resets it.
 - **Tail-call dives:** a clone marks a dotted path to you and dives along it. It's shootable and
   parryable.
-- **The beam recurses:** it forks into two angled branches partway down.
+- **Three beam columns** at once, 4 units apart and centered on the boss, so there's always a
+  3-unit safe lane between them.
 
 **Phase 3 (33% HP): mutual recursion.** The tree collapses and the root splits into
 `isEven(3)` and `isOdd(3)`, two half-size trees that share the remaining HP. Kill one and the
-other calls twice as fast; kill both to win. The beam forks into four.
+other calls twice as fast; kill both to win. The beam fires **four columns** at once.
 
 Implementation: `RecursionBoss` (calling, unwinding, overflow, phases, attacks), `BossFrame` (one
 call frame, including the dive), `SplitShot` (split shots, return values, volleys, memoized
-shots), `StackTraceBeam` (now fires along any segment, so it can fork), and `BossHud` (health bar,
+shots), `StackTraceBeam`, and `BossHud` (health bar,
 shared by both bosses through the `IBoss` interface). The run order lives in
 `GameManager.stages`, a list of waves and bosses set in the Inspector.
 

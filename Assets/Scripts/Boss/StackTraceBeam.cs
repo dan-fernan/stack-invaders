@@ -34,7 +34,9 @@ public class StackTraceBeam : MonoBehaviour
     {
         float height = Vector2.Distance(from, to);
         transform.position = (from + to) / 2f;
-        transform.rotation = Quaternion.LookRotation(Vector3.forward, to - from);
+        // Local up points back toward the start, so a downward column has no rotation and
+        // its stack-trace text reads upright and scrolls down.
+        transform.rotation = Quaternion.LookRotation(Vector3.forward, from - to);
 
         float half = width / 2f;
         outlineLeft.transform.localPosition = new Vector3(-half, 0f, 0f);

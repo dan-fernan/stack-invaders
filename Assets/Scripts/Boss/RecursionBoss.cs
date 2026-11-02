@@ -16,10 +16,10 @@ using UnityEngine;
 /// The fight escalates in three phases by remaining HP:
 ///   1. (100-66%) split shots, return-value rain, stack-trace beam, Fibonacci volleys.
 ///   2. (66-33%)  + memoization (fires at your cached positions), stack growth (the tree
-///                pushes down a row), tail-call dives, and the beam forks in two.
+///                pushes down a row), tail-call dives, and the beam fires in 3 columns.
 ///   3. (< 33%)   mutual recursion: the tree collapses and the root splits into isEven and
 ///                isOdd, sharing the remaining HP. Kill one and the other calls twice as
-///                fast; kill both to win. The beam forks into four.
+///                fast; kill both to win. The beam fires in 4 columns.
 /// </summary>
 public class RecursionBoss : MonoBehaviour, IBoss
 {
@@ -85,8 +85,10 @@ public class RecursionBoss : MonoBehaviour, IBoss
     [SerializeField] private StackTraceBeam beamPrefab;
     [Tooltip("Seconds between beams at full HP / near death.")]
     [SerializeField] private Vector2 beamIntervalRange = new Vector2(9f, 4f);
-    [Tooltip("Each fork turns this many degrees off its parent beam.")]
-    [SerializeField] private float beamForkAngle = 18f;
+    [Tooltip("Beam columns fired at once in phases 1, 2 and 3.")]
+    [SerializeField] private int[] beamColumns = { 1, 3, 4 };
+    [Tooltip("Distance between beam columns (beams are 1 unit wide, so 4 leaves 3-unit safe lanes).")]
+    [SerializeField] private float beamColumnSpacing = 4f;
 
     [Header("Memoization (phase 2+)")]
     [Tooltip("Seconds between caching the developer's position.")]
@@ -565,8 +567,9 @@ public class RecursionBoss : MonoBehaviour, IBoss
     }
 
     /// <summary>
-    /// A root marks its column, then fires a stack-trace beam down it. In phase 2 the beam
-    /// forks once partway down, in phase 3 twice (four branches) - the beam recurses too.
+    /// Stack-trace beams: phase 1 fires one column under a root; later phases fire several
+    /// evenly spaced columns at once, centered on the boss so they drift with it.
+    /// All columns telegraph together, leaving safe lanes between them.
     /// </summary>
     private void FireBeam()
     {
@@ -574,25 +577,16 @@ public class RecursionBoss : MonoBehaviour, IBoss
         if (beamPrefab == null || root == null) return;
         float top = root.transform.position.y - root.GetComponent<SpriteRenderer>().bounds.extents.y;
         float bottom = cam.transform.position.y - cam.orthographicSize;
-        int forks = Phase - 1; // 0, 1, 2
-        BeamBranch(new Vector2(root.transform.position.x, top), Vector2.down, bottom, top - bottom, forks);
-    }
 
-    private void BeamBranch(Vector2 from, Vector2 dir, float bottom, float height, int forks)
-    {
-        if (forks <= 0)
+        int count = beamColumns[Mathf.Clamp(Phase - 1, 0, beamColumns.Length - 1)];
+        float center = count == 1 ? root.transform.position.x : transform.position.x;
+        float halfView = cam.orthographicSize * cam.aspect;
+        for (int i = 0; i < count; i++)
         {
-            // Run to the floor.
-            float t = (from.y - bottom) / Mathf.Max(0.01f, -dir.y);
-            Instantiate(beamPrefab).FireSegment(from, from + dir * t);
-            return;
+            float x = center + (i - (count - 1) / 2f) * beamColumnSpacing;
+            x = Mathf.Clamp(x, cam.transform.position.x - halfView + 0.5f, cam.transform.position.x + halfView - 0.5f);
+            Instantiate(beamPrefab).Fire(x, top, bottom);
         }
-        // Go part of the way down, then fork left and right.
-        float segment = height / (forks + 1);
-        Vector2 fork = from + dir * (segment / Mathf.Max(0.01f, -dir.y));
-        Instantiate(beamPrefab).FireSegment(from, fork);
-        foreach (float a in new[] { -beamForkAngle, beamForkAngle })
-            BeamBranch(fork, Quaternion.Euler(0f, 0f, a) * dir, bottom, height - segment, forks - 1);
     }
 
     /// <summary>A clone marks a dotted path to the developer, then dives along it.</summary>

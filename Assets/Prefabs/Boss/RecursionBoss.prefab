@@ -120,7 +120,8 @@ MonoBehaviour:
   fibSpeedScale: 0.9
   beamPrefab: {fileID: 3659793071824465773, guid: 61082bd13607a4a66925d5e026551d54, type: 3}
   beamIntervalRange: {x: 9, y: 4}
-  beamForkAngle: 18
+  beamColumns: 010000000300000004000000i
+  beamColumnSpacing: 4
   memoSampleInterval: 1.2
   memoCacheSize: 3
   memoInterval: 6
