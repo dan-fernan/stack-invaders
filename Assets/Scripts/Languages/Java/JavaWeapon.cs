@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 /// consecutive throw raises "heat" so the next one comes sooner, like the JVM
 /// optimizing hot code. Stop throwing and the JIT cools back down.
 /// </summary>
-public class JavaWeapon : MonoBehaviour, IStageReset
+public class JavaWeapon : MonoBehaviour, IStageReset, IMultiShotWeapon
 {
     [SerializeField] private CoffeeCup cupPrefab;
     [Tooltip("Where cups are thrown from (the developer's throwing hand).")]
@@ -34,6 +34,13 @@ public class JavaWeapon : MonoBehaviour, IStageReset
 
     /// <summary>Spring Boot boon: multiplies the heat each throw adds.</summary>
     public float HeatGainMultiplier { get; set; } = 1f;
+
+    /// <summary>Multithreading boon: every Nth throw also throws a second cup (0 = off).</summary>
+    public int ExtraShotEvery { get; set; }
+
+    [Tooltip("Sideways offset of the Multithreading cup from the main one.")]
+    [SerializeField] private float extraShotOffset = 0.5f;
+    private int throwCount;
 
     /// <summary>Maven boon: chained splashes per cup (0 = none) and their radius.</summary>
     public int ChainCount { get; set; }
@@ -79,6 +86,13 @@ public class JavaWeapon : MonoBehaviour, IStageReset
     {
         CoffeeCup cup = Instantiate(cupPrefab, throwPoint.position, Quaternion.identity);
         cup.SetChain(ChainCount, ChainRadius);
+        throwCount++;
+        if (ExtraShotEvery > 0 && throwCount % ExtraShotEvery == 0)
+        {
+            // Multithreading: a second thread throws alongside, one cup-width over.
+            CoffeeCup extra = Instantiate(cupPrefab, throwPoint.position + Vector3.left * extraShotOffset, Quaternion.identity);
+            extra.SetChain(ChainCount, ChainRadius);
+        }
         if (animator != null) animator.PlayThrow();
         nextThrowTime = Time.time + Mathf.Lerp(coldCooldown, hotCooldown, Heat);
         lastThrowTime = Time.time;

@@ -17,6 +17,9 @@ public class PlayerController : MonoBehaviour
 
     private Camera cam;
     private SpriteRenderer spriteRenderer;
+
+    /// <summary>SSD upgrade boon: multiplies movement speed.</summary>
+    public float SpeedMultiplier { get; set; } = 1f;
     private bool limited;
     private float limitMin, limitMax;
 
@@ -41,7 +44,7 @@ public class PlayerController : MonoBehaviour
         float input = ReadHorizontalInput();
 
         Vector3 pos = transform.position;
-        pos.x += input * moveSpeed * Time.deltaTime;
+        pos.x += input * moveSpeed * SpeedMultiplier * Time.deltaTime;
         pos.x = ClampToScreen(pos.x);
         transform.position = pos;
     }

@@ -6,8 +6,8 @@ using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
-/// Hades-style boons. Wave n (1-based) drops n floppy disks, spread evenly over the
-/// wave's kills. Each disk offers up to 3 of the language's boons; picking one you
+/// Hades-style boons. Wave n (1-based) drops n + 1 floppy disks, spread evenly over the
+/// wave's kills, and the miniboss is worth 2 more. Each disk offers up to 3 of the language's boons; picking one you
 /// already have levels it up. Boons last the whole run.
 /// GameManager pauses the game and shows the offer; this class owns the pool, levels,
 /// drops, the offer menu and the HUD line.
@@ -61,21 +61,34 @@ public class BoonManager : MonoBehaviour
         pool = all.ToArray();
         receiver = language.boonReceiver as IBoonReceiver;
         levels.Clear();
+        if (universalReceiver is UniversalBoons universal) universal.SetLanguage(language);
         RefreshHud();
+    }
+
+    /// <summary>Per-stage reset for the universal boons (firewalls rebuilt, git revert re-armed).</summary>
+    public void ResetForStage()
+    {
+        if (universalReceiver is IStageReset reset) reset.ResetForStage();
+    }
+
+    /// <summary>Extra offers not tied to a disk (the miniboss reward).</summary>
+    public void GrantOffers(int count)
+    {
+        if (pool.Length > 0) PendingOffers += count;
     }
 
     public int LevelOf(string id) => levels.TryGetValue(id, out int l) ? l : 0;
 
     // ---------- Drops ----------
 
-    /// <summary>A wave started: wave n (0-based index) drops n + 1 disks over its kills.</summary>
+    /// <summary>A wave started: wave n (0-based index) drops n + 2 disks over its kills.</summary>
     public void BeginWave(int waveIndex)
     {
         dropAtKill.Clear();
         killsThisWave = 0;
         if (pool.Length == 0) return;
 
-        int drops = waveIndex + 1;
+        int drops = waveIndex + 2;
         int bugs = waveManager.CurrentWaveBugCount;
         for (int i = 1; i <= drops; i++)
             dropAtKill.Enqueue(Mathf.Max(1, Mathf.RoundToInt(bugs * i / (float)(drops + 1))));

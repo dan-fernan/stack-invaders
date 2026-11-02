@@ -47,6 +47,8 @@ public class GameManager : MonoBehaviour
 
     [Header("Boons")]
     [SerializeField] private BoonManager boons;
+    [Tooltip("Boon offers granted for beating a (non-final) boss.")]
+    [SerializeField] private int minibossOffers = 2;
 
     [Header("Transitions")]
     [Tooltip("Wave banner / boss warning played between stages.")]
@@ -255,6 +257,7 @@ public class GameManager : MonoBehaviour
     {
         if (state != State.Playing) return;
 
+        bool bossBeaten = boss != null;
         if (boss != null)
         {
             boss.Defeated -= StageCleared;
@@ -272,6 +275,7 @@ public class GameManager : MonoBehaviour
 
         // Disks left on the floor are collected; offer them before the break.
         boons.CollectRemaining();
+        if (bossBeaten) boons.GrantOffers(minibossOffers);
         if (boons.PendingOffers > 0)
         {
             BeginChoosing(() => ContinueToNextStage(passed));
@@ -311,10 +315,11 @@ public class GameManager : MonoBehaviour
     private static string FirstLine(string text) =>
         string.IsNullOrEmpty(text) ? "" : text.Split('\n')[0];
 
-    /// <summary>Fresh per-stage state: JIT heat, GC charge, JUnit shields.</summary>
+    /// <summary>Fresh per-stage state: JIT heat, GC charge, JUnit shields, firewalls, git revert.</summary>
     private void ResetForStage()
     {
         playerHealth.RefillShields();
+        boons.ResetForStage();
         if (language == null) return;
         foreach (MonoBehaviour behaviour in language.behaviours)
             if (behaviour is IStageReset reset) reset.ResetForStage();

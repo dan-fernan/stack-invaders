@@ -214,12 +214,14 @@ writing their scripts and filling in a new entry; `GameManager` doesn't change.
 Language-specific power-ups that work like Hades boons: permanent for the run, and
 picking one you already have levels it up.
 
-- **Drops:** wave *n* drops *n* floppy disks (1 + 2 + 3 = 6 per run), spread evenly over its
-  kills. Disks fall from the bug that dropped them and rest on the floor until you walk over them.
-  Any still on the floor when the wave ends are collected automatically. Bosses don't drop disks.
+- **Drops:** wave *n* drops *n* + 1 floppy disks (2 + 3 + 4), spread evenly over its kills,
+  and beating the `binarySearch()` miniboss grants 2 more installs: 11 per run. Disks fall from
+  the bug that dropped them and rest on the floor until you walk over them. Any still on the
+  floor when the wave ends are collected automatically.
 - **Install:** picking up a disk pauses on `Floppy disk found!  $ install --dependency`, offering
   up to 3 of your language's boons that aren't maxed yet (W/S or 1–3, Space to install).
-- **HUD:** installed boons and levels show under the hearts, e.g. `SB2 JU1 MV1`.
+- **HUD:** installed boons and levels show under the hearts, e.g. `SB2 JU1 MV1`, wrapping onto
+  a second line so it never runs into the boss bar.
 
 | Java boon | Lv 1 | Lv 2 | Lv 3 |
 | --- | --- | --- | --- |
@@ -229,11 +231,15 @@ picking one you already have levels it up.
 
 | Universal boon (every language) | Lv 1 | Lv 2 |
 | --- | --- | --- |
-| **Compute Upgrade**: vertical scaling, a bigger machine | +1 max heart (arrives full) | +1 more (5 hearts total) |
+| **Compute Upgrade** (`CU`): vertical scaling, a bigger machine | +1 max heart (arrives full) | +1 more (5 hearts total) |
+| **SSD Upgrade** (`SD`): faster I/O | +20% move speed | +40% |
+| **git revert** (`GR`): undo the last commit | Once per stage, your first lost heart comes back after 5 s if you aren't hit again (a second hit aborts it: `revert aborted: conflict`) | Reverts after 3 s |
+| **Multithreading** (`MT`): a second worker thread | Every 3rd attack fires twice | Every 2nd attack |
+| **Firewall** (`FW`): blocks incoming traffic | 2 small brick barriers above you, each absorbing 3 enemy shots (bits, split shots, cache hits, return values); your own shots pass through, beams aren't stopped; rebuilt every stage | +1 middle barrier |
 
-With Java's three boons plus Compute Upgrade, each disk offers a random 3 of 4.
+With Java's three boons plus five universal ones, each disk offers a random 3 of 8.
 
-JIT heat, the GC charge and JUnit's tests reset at the start of each stage, not when the game
+JIT heat, the GC charge, JUnit's tests, firewalls and git revert reset at the start of each stage, not when the game
 pauses for an install. Implementation: `BoonManager`, `FloppyDisk`, `BoonDefinition` (a language's
 pool lives on its `LanguageOption`; universal boons on the `BoonManager`), `JavaBoons`, `ChainSplash` (Maven)
 and `UniversalBoons`.

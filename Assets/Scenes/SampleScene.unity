@@ -159,7 +159,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 12800000, guid: 78dda392657c94e9a823f70accfe6804, type: 3}
-    m_FontSize: 12
+    m_FontSize: 10
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 10
@@ -167,9 +167,9 @@ MonoBehaviour:
     m_Alignment: 0
     m_AlignByGeometry: 0
     m_RichText: 1
-    m_HorizontalOverflow: 1
-    m_VerticalOverflow: 0
-    m_LineSpacing: 1
+    m_HorizontalOverflow: 0
+    m_VerticalOverflow: 1
+    m_LineSpacing: 0.8
   m_Text: 
 --- !u!222 &3303286
 CanvasRenderer:
@@ -196,7 +196,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
   m_AnchoredPosition: {x: 4, y: -11}
-  m_SizeDelta: {x: 80, y: 12}
+  m_SizeDelta: {x: 64, y: 10}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &29845577
 GameObject:
@@ -1274,6 +1274,7 @@ MonoBehaviour:
   bossHud: {fileID: 599218881}
   waveHud: {fileID: 29845577}
   boons: {fileID: 958215715}
+  minibossOffers: 2
   transition: {fileID: 1328362844}
   playerHealth: {fileID: 982252450}
   playerSprite: {fileID: 982252447}
@@ -1505,6 +1506,30 @@ MonoBehaviour:
     levelDescriptions:
     - +1 max heart (arrives full)
     - +1 more max heart
+  - id: ssd
+    displayName: SSD Upgrade
+    tag: SD
+    levelDescriptions:
+    - +20% move speed
+    - +40% move speed
+  - id: revert
+    displayName: git revert
+    tag: GR
+    levelDescriptions:
+    - once per stage, your first lost heart returns after 5s without another hit
+    - reverts after 3s
+  - id: threads
+    displayName: Multithreading
+    tag: MT
+    levelDescriptions:
+    - every 3rd attack fires twice
+    - every 2nd attack fires twice
+  - id: firewall
+    displayName: Firewall
+    tag: FW
+    levelDescriptions:
+    - 2 barriers absorb 3 enemy shots each; rebuilt every stage
+    - +1 middle barrier
   universalReceiver: {fileID: 958215717}
 --- !u!4 &958215716
 Transform:
@@ -1534,6 +1559,24 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UniversalBoons
   health: {fileID: 982252450}
+  movement: {fileID: 982252446}
+  ssdSpeed:
+  - 1.2
+  - 1.4
+  revertDelay:
+  - 5
+  - 3
+  popupPrefab: {fileID: 3319601294227622659, guid: 75970f8311ff6446bb7de064baa91b0c, type: 3}
+  popupCanvas: {fileID: 948229221}
+  revertColor: {r: 0.7372549, g: 0.54901963, b: 1, a: 1}
+  extraShotEvery: 0300000002000000i
+  firewallPrefab: {fileID: 2521414922236742412, guid: fc7ff358c21164ae791ca3475585e641, type: 3}
+  firewallX:
+  - -4.5
+  - 4.5
+  - 0
+  firewallCount: 0200000003000000i
+  firewallY: -2.75
 --- !u!1 &982252445
 GameObject:
   m_ObjectHideFlags: 0
@@ -1775,6 +1818,7 @@ MonoBehaviour:
   coolDelay: 0.6
   coolRate: 0.7
   heatSegments: 10
+  extraShotOffset: 0.5
 --- !u!114 &982252455
 MonoBehaviour:
   m_ObjectHideFlags: 0

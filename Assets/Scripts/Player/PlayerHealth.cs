@@ -55,6 +55,15 @@ public class PlayerHealth : MonoBehaviour
         Changed?.Invoke(Hearts, maxHearts);
     }
 
+    /// <summary>Restores up to <paramref name="amount"/> hearts (never above max). Returns true if any came back.</summary>
+    public bool Heal(int amount)
+    {
+        if (IsDead || Hearts >= maxHearts) return false;
+        Hearts = Mathf.Min(maxHearts, Hearts + amount);
+        Changed?.Invoke(Hearts, maxHearts);
+        return true;
+    }
+
     /// <summary>Refill shields to the per-stage amount (at the start of each stage).</summary>
     public void RefillShields()
     {

@@ -16,7 +16,7 @@ using UnityEngine.Serialization;
 [RequireComponent(typeof(Rigidbody2D), typeof(Collider2D), typeof(SpriteRenderer))]
 public class BitProjectile : MonoBehaviour, IShootable, IParryable
 {
-    public enum Outcome { Returned, HitPlayer, Shot }
+    public enum Outcome { Returned, HitPlayer, Shot, Blocked }
 
     private enum State { Homing, Coasting, Returning, Reflected }
 
@@ -188,6 +188,7 @@ public class BitProjectile : MonoBehaviour, IShootable, IParryable
     {
         if (!IsDangerous) return; // harmless on the way home
         if (other.TryGetComponent(out BreakpointParry parry) && parry.TryCatch(this)) return;
+        if (other.TryGetComponent(out FirewallBlock wall) && wall.Absorb()) { Resolve(Outcome.Blocked); return; }
         if (other.TryGetComponent(out PlayerHealth health) && health.TakeHit())
             Resolve(Outcome.HitPlayer);
     }

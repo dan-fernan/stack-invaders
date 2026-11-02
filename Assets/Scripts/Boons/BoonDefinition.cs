@@ -28,6 +28,15 @@ public interface IBoonReceiver
 }
 
 /// <summary>
+/// A language weapon that supports the Multithreading boon: every Nth attack fires twice.
+/// </summary>
+public interface IMultiShotWeapon
+{
+    /// <summary>0 = off; N = every Nth attack fires an extra shot.</summary>
+    int ExtraShotEvery { get; set; }
+}
+
+/// <summary>
 /// Scripts with state that should start fresh at the beginning of each stage
 /// (rather than every time gameplay is paused and resumed).
 /// </summary>
